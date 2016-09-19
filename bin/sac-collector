@@ -1,0 +1,15 @@
+#!/usr/bin/python
+
+from optparse import OptionParser
+import caretaker.collector
+
+if __name__ == "__main__":
+    parser = OptionParser('%prog [options]')
+    parser.add_option(
+        '-d', '--device-dir', default='/srv/node', dest="device_dir",
+        help="Pass location of device directory")
+
+    options, args = parser.parse_args()
+
+    accounts = caretaker.collector.collect(options.device_dir)
+    caretaker.collector.output(accounts)
