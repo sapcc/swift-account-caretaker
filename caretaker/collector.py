@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import fnmatch
+import glob
 import os
 import sqlite3
 import socket
@@ -22,14 +22,9 @@ from swift.account.backend import AccountBroker
 
 def collect(device_dir='/srv/node', stale_reads_ok=False,
             reseller_prefix='AUTH_'):
-    matches = []
-    # Search the account DB files in the device dir
-    for root, dirnames, filenames in os.walk(device_dir):
-        if fnmatch.fnmatch(root, '*/accounts/*'):
-            for filename in fnmatch.filter(filenames, '*.db'):
-                matches.append(os.path.join(root, filename))
-
+    matches = glob.glob(os.path.join(device_dir, '*/accounts/*.db'))
     accounts = []
+
     # Evaluate the Account information
     for match in matches:
         broker = AccountBroker(match, stale_reads_ok=stale_reads_ok)
@@ -38,7 +33,7 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             meta = broker.metadata
 
             account = {'id': info['id'], 'account': info['account'],
-                       'project': info['account'].replace(reseller_prefix, ''),
+                       'project': info['account'].lstrip(reseller_prefix),
                        'object_count': info['object_count'],
                        'bytes_used': info['bytes_used'], 'created_at': info['created_at'],
                        'delete_timestamp': info['delete_timestamp']}
@@ -47,7 +42,7 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             else:
                 account['domain'] = '_unknown'
             if 'X-Account-Meta-Quota-Bytes' in meta:
-                account['quota_bytes'] = int(meta['X-Account-Meta-Quota-Bytes'].pop(0))
+                account['quota_bytes'] = int(meta['X-Account-Meta-Quota-Bytes'][0])
             else:
                 account['quota_bytes'] = 0
 

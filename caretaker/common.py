@@ -27,7 +27,7 @@ def get_swift_connection(args):
     args_dict = vars(args)
     for key, value in args_dict.iteritems():
         if key.startswith('os_'):
-            key = key.replace('os_', '')
+            key = key.lstrip('os_')
             os_options[key] = value
 
     connection = Connection(authurl=authurl,
