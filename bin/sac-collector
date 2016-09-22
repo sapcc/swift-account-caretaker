@@ -86,6 +86,10 @@ if __name__ == "__main__":
                         default=environ.get('OS_PROJECT_DOMAIN_NAME'),
                         help='OpenStack project domain name. '
                              'Defaults to env[OS_PROJECT_DOMAIN_NAME].')
+    parser.add_argument('--os-auth-version',
+                        default='3',
+                        help='OpenStack region name. '
+                             'Defaults to env[OS_REGION_NAME].')
     parser.add_argument('--os-auth-url',
                         default=environ.get('OS_AUTH_URL'),
                         help='OpenStack auth URL. Defaults to '
@@ -105,10 +109,6 @@ if __name__ == "__main__":
                              '--os-auth-token.')
     parser.add_argument('--os-region-name',
                         default=environ.get('OS_REGION_NAME'),
-                        help='OpenStack region name. '
-                             'Defaults to env[OS_REGION_NAME].')
-    parser.add_argument('--os-auth-version',
-                        default='3',
                         help='OpenStack region name. '
                              'Defaults to env[OS_REGION_NAME].')
     parser.add_argument('--os-cacert',
