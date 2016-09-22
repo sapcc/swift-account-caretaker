@@ -1,6 +1,21 @@
+# Copyright 2016 SAP SE
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import fnmatch
 import os
 import sqlite3
+import socket
 
 from swift.account.backend import AccountBroker
 
@@ -23,7 +38,8 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             meta = broker.metadata
 
             account = {'id': info['id'], 'account': info['account'],
-                       'project': info['account'].replace(reseller_prefix, ''), 'object_count': info['object_count'],
+                       'project': info['account'].replace(reseller_prefix, ''),
+                       'object_count': info['object_count'],
                        'bytes_used': info['bytes_used'], 'created_at': info['created_at'],
                        'delete_timestamp': info['delete_timestamp']}
             if 'X-Account-Sysmeta-Project-Domain-Id' in meta:
@@ -44,9 +60,23 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
 
 
 def output(accounts):
-    print "Domain\tID\tProject\tCreated\tDeleted\tObject Count\tBytes Used\tQuota Bytes"
+    print _format_accounts(accounts, "\t")
+
+
+def upload(accounts, connection, container='caretaker'):
+    obj_name = 'raw/' + socket.getfqdn() + '_accounts.csv'
+    content = _format_accounts(accounts)
+    connection.put_container(container)
+    connection.put_object(container, obj_name, contents=content, content_type='text/plain')
+
+
+def _format_accounts(accounts, delimiter=','):
+    result = delimiter.join(['domain', 'id', 'project', 'created_at', 'delete_timestamp',
+                             'object_count', 'bytes_used', 'quota_bytes'])
     for account in accounts:
-        print '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format(account['domain'], account['id'],
-                                                              account['project'], account['created_at'],
-                                                              account['delete_timestamp'], account['object_count'],
-                                                              account['bytes_used'], account['quota_bytes'])
+        line = delimiter.join([account['domain'], account['id'], account['project'], account['created_at'],
+                               account['delete_timestamp'], str(account['object_count']),
+                               str(account['bytes_used']), str(account['quota_bytes'])])
+        result = "{0}\n{1}".format(result, line)
+
+    return result
