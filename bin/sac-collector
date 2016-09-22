@@ -14,18 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-from os import environ
 import argparse
-import caretaker.common
 import caretaker.collector
+import sys
+
+from caretaker.common import get_swift_connection
+from os import environ
 
 
 def collect(arguments):
     accounts = caretaker.collector.collect(arguments.device_dir)
     if arguments.verbose > 0:
         caretaker.collector.output(accounts)
-    caretaker.collector.upload(accounts, caretaker.common.get_swift_connection(arguments))
+    caretaker.collector.upload(accounts, get_swift_connection(arguments))
 
 
 def merge(arguments):

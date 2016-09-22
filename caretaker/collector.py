@@ -14,8 +14,8 @@
 
 import glob
 import os
-import sqlite3
 import socket
+import sqlite3
 
 from swift.account.backend import AccountBroker
 
