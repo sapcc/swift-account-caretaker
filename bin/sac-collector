@@ -28,6 +28,14 @@ def collect(arguments):
     caretaker.collector.upload(accounts, caretaker.common.get_swift_connection(arguments))
 
 
+def merge(arguments):
+    raise NotImplementedError
+
+
+def verify(arguments):
+    raise NotImplementedError
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -127,12 +135,14 @@ if __name__ == "__main__":
                                      'Defaults to caretaker.')
 
     parser_merge = subparsers.add_parser('merge', help='Merge collected account info')
+    parser_merge.set_defaults(func=merge)
     parser_merge.add_argument('--container',
                               default='caretaker',
                               help='Container for caretaker. '
                                    'Defaults to caretaker.')
 
     parser_verify = subparsers.add_parser('verify', help='verify account info')
+    parser_verify.set_defaults(func=verify)
     parser_verify.add_argument('--clean-up',
                                default=False,
                                help='Wipe out orphaned accounts.')

@@ -61,6 +61,7 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
 
 def output(accounts):
     print _format_accounts(accounts, "\t")
+    print "\n---\n"
 
 
 def upload(accounts, connection, container='caretaker'):
@@ -68,6 +69,8 @@ def upload(accounts, connection, container='caretaker'):
     content = _format_accounts(accounts)
     connection.put_container(container)
     connection.put_object(container, obj_name, contents=content, content_type='text/plain')
+
+    print obj_name + " uploaded"
 
 
 def _format_accounts(accounts, delimiter=','):
