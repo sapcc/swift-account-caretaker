@@ -1,0 +1,152 @@
+#!/usr/bin/python
+
+# Copyright 2016 SAP SE
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import caretaker.collector
+import sys
+
+from caretaker.common import get_swift_connection
+from os import environ
+
+
+def collect(arguments):
+    accounts = caretaker.collector.collect(arguments.device_dir)
+    if arguments.verbose > 0:
+        caretaker.collector.output(accounts)
+    caretaker.collector.upload(accounts, get_swift_connection(arguments))
+
+
+def merge(arguments):
+    raise NotImplementedError
+
+
+def verify(arguments):
+    raise NotImplementedError
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(help='sub-command help')
+
+    parser.add_argument('-v', '--verbose', action="count", default=0,
+                        help='Increase verbosity')
+    parser.add_argument('--os-username',
+                        default=environ.get('OS_USERNAME'),
+                        help='OpenStack username. Defaults to '
+                             'env[OS_USERNAME].')
+    parser.add_argument('--os-user-id',
+                        default=environ.get('OS_USER_ID'),
+                        help='OpenStack user ID. '
+                        'Defaults to env[OS_USER_ID].')
+    parser.add_argument('--os-user-domain-id',
+                        default=environ.get('OS_USER_DOMAIN_ID'),
+                        help='OpenStack user domain ID. '
+                        'Defaults to env[OS_USER_DOMAIN_ID].')
+    parser.add_argument('--os-user-domain-name',
+                        default=environ.get('OS_USER_DOMAIN_NAME'),
+                        help='OpenStack user domain name. '
+                             'Defaults to env[OS_USER_DOMAIN_NAME].')
+    parser.add_argument('--os-password',
+                        default=environ.get('OS_PASSWORD'),
+                        help='OpenStack password. Defaults to '
+                             'env[OS_PASSWORD].')
+    parser.add_argument('--os-tenant-id',
+                        default=environ.get('OS_TENANT_ID'),
+                        help='OpenStack tenant ID. '
+                        'Defaults to env[OS_TENANT_ID].')
+    parser.add_argument('--os-tenant-name',
+                        default=environ.get('OS_TENANT_NAME'),
+                        help='OpenStack tenant name. '
+                             'Defaults to env[OS_TENANT_NAME].')
+    parser.add_argument('--os-project-id',
+                        default=environ.get('OS_PROJECT_ID'),
+                        help='OpenStack project ID. '
+                        'Defaults to env[OS_PROJECT_ID].')
+    parser.add_argument('--os-project-name',
+                        default=environ.get('OS_PROJECT_NAME'),
+                        help='OpenStack project name. '
+                             'Defaults to env[OS_PROJECT_NAME].')
+    parser.add_argument('--os-project-domain-id',
+                        default=environ.get('OS_PROJECT_DOMAIN_ID'),
+                        help='OpenStack project domain ID. '
+                        'Defaults to env[OS_PROJECT_DOMAIN_ID].')
+    parser.add_argument('--os-project-domain-name',
+                        default=environ.get('OS_PROJECT_DOMAIN_NAME'),
+                        help='OpenStack project domain name. '
+                             'Defaults to env[OS_PROJECT_DOMAIN_NAME].')
+    parser.add_argument('--os-auth-version',
+                        default='3',
+                        help='OpenStack region name. '
+                             'Defaults to env[OS_REGION_NAME].')
+    parser.add_argument('--os-auth-url',
+                        default=environ.get('OS_AUTH_URL'),
+                        help='OpenStack auth URL. Defaults to '
+                             'env[OS_AUTH_URL].')
+    parser.add_argument('--os-auth-token',
+                        default=environ.get('OS_AUTH_TOKEN'),
+                        help='OpenStack token. Defaults to '
+                             'env[OS_AUTH_TOKEN]. Used with --os-storage-url '
+                             'to bypass the usual username/password '
+                             'authentication.')
+    parser.add_argument('--os-storage-url',
+                        default=environ.get('OS_STORAGE_URL'),
+                        help='OpenStack storage URL. '
+                             'Defaults to env[OS_STORAGE_URL]. '
+                             'Overrides the storage url returned during auth. '
+                             'Will bypass authentication when used with '
+                             '--os-auth-token.')
+    parser.add_argument('--os-region-name',
+                        default=environ.get('OS_REGION_NAME'),
+                        help='OpenStack region name. '
+                             'Defaults to env[OS_REGION_NAME].')
+    parser.add_argument('--os-cacert',
+                        default=environ.get('OS_CACERT'),
+                        help='Specify a CA bundle file to use in verifying a '
+                        'TLS (https) server certificate. '
+                        'Defaults to env[OS_CACERT].')
+    parser.add_argument('--insecure',
+                        default=environ.get('SWIFTCLIENT_INSECURE'),
+                        help='Allow swiftclient to access servers without '
+                             'having to verify the SSL certificate. '
+                             'Defaults to env[SWIFTCLIENT_INSECURE] '
+                             '(set to \'true\' to enable).')
+
+    parser_collect = subparsers.add_parser('collect', help='collect account info')
+    parser_collect.set_defaults(func=collect)
+    parser_collect.add_argument('--device-dir',
+                                default='/srv/node',
+                                help='Swift Device Directory. '
+                                     'Defaults to /srv/node.')
+    parser_collect.add_argument('--container',
+                                default='caretaker',
+                                help='Container for caretaker. '
+                                     'Defaults to caretaker.')
+
+    parser_merge = subparsers.add_parser('merge', help='Merge collected account info')
+    parser_merge.set_defaults(func=merge)
+    parser_merge.add_argument('--container',
+                              default='caretaker',
+                              help='Container for caretaker. '
+                                   'Defaults to caretaker.')
+
+    parser_verify = subparsers.add_parser('verify', help='verify account info')
+    parser_verify.set_defaults(func=verify)
+    parser_verify.add_argument('--clean-up',
+                               default=False,
+                               help='Wipe out orphaned accounts.')
+
+    args = parser.parse_args(sys.argv[1:])
+    args.func(args)
