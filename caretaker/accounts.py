@@ -14,10 +14,30 @@
 
 import glob
 import os
-import socket
 import sqlite3
 
 from swift.account.backend import AccountBroker
+
+
+ACCOUNT_FIELDS = ['domain', 'id', 'project', 'object_count', 'bytes_used', 'quota_bytes',
+                  'created_at', 'status_deleted', 'deleted',
+                  'created_at', 'status_changed_at', 'put_timestamp', 'delete_timestamp']
+
+
+def format(accounts, delimiter=',', with_header=False):
+    result = ''
+
+    if with_header:
+        result = delimiter.join(ACCOUNT_FIELDS) + "\n"
+
+    for account in accounts:
+        line = []
+        for field in ACCOUNT_FIELDS:
+            line.append(str(account[field]))
+
+        result += delimiter.join(line) + "\n"
+
+    return result
 
 
 def collect(device_dir='/srv/node', stale_reads_ok=False,
@@ -32,10 +52,16 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             info = broker.get_info()
             meta = broker.metadata
 
-            account = {'id': info['id'], 'account': info['account'],
+            account = {'id': info['id'],
+                       'account': info['account'],
                        'project': info['account'].lstrip(reseller_prefix),
                        'object_count': info['object_count'],
-                       'bytes_used': info['bytes_used'], 'created_at': info['created_at'],
+                       'bytes_used': info['bytes_used'],
+                       'status_deleted': broker.is_status_deleted(),
+                       'deleted': broker.is_deleted(),
+                       'created_at': info['created_at'],
+                       'status_changed_at': info['status_changed_at'],
+                       'put_timestamp': info['put_timestamp'],
                        'delete_timestamp': info['delete_timestamp']}
             if 'X-Account-Sysmeta-Project-Domain-Id' in meta:
                 account['domain'] = str(meta['X-Account-Sysmeta-Project-Domain-Id'].pop(0))
@@ -54,27 +80,21 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
     return accounts
 
 
-def output(accounts):
-    print _format_accounts(accounts, "\t")
-    print "\n---\n"
+def merge(contents):
+    accounts = {}
+    for line in contents.split("\n"):
+        if line:
+            account = {}
+            i = 0
+            values = line.split(',')
 
+            # Reconstruct Account Dict
+            for field in ACCOUNT_FIELDS:
+                account[field] = values[i]
+                i += 1
 
-def upload(accounts, connection, container='caretaker'):
-    obj_name = 'raw/' + socket.getfqdn() + '_accounts.csv'
-    content = _format_accounts(accounts)
-    connection.put_container(container)
-    connection.put_object(container, obj_name, contents=content, content_type='text/plain')
+            # Only collect the IDs to skip duplicates
+            accounts[account['id']] = account
 
-    print obj_name + " uploaded"
+    return accounts.values()
 
-
-def _format_accounts(accounts, delimiter=','):
-    result = delimiter.join(['domain', 'id', 'project', 'created_at', 'delete_timestamp',
-                             'object_count', 'bytes_used', 'quota_bytes'])
-    for account in accounts:
-        line = delimiter.join([account['domain'], account['id'], account['project'], account['created_at'],
-                               account['delete_timestamp'], str(account['object_count']),
-                               str(account['bytes_used']), str(account['quota_bytes'])])
-        result = "{0}\n{1}".format(result, line)
-
-    return result
