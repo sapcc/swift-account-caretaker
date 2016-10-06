@@ -15,7 +15,7 @@
 from swiftclient.client import Connection
 
 
-def get_swift_connection(args):
+def swift_connection(args):
     authurl = args.os_auth_url
     username = args.os_username
     password = args.os_password
@@ -30,12 +30,27 @@ def get_swift_connection(args):
             key = key.lstrip('os_')
             os_options[key] = value
 
-    connection = Connection(authurl=authurl,
-                            user=username,
-                            key=password,
-                            auth_version=auth_version,
-                            cacert=cacert,
-                            insecure=insecure,
-                            os_options=os_options)
+    return Connection(authurl=authurl,
+                      user=username,
+                      key=password,
+                      auth_version=auth_version,
+                      cacert=cacert,
+                      insecure=insecure,
+                      os_options=os_options)
 
-    return connection
+
+def swift_upload(connection, container, obj_name, contents, content_type='text/plain'):
+    connection.put_container(container)
+    connection.put_object(container, obj_name, contents=contents, content_type=content_type)
+
+    print container + '/' + obj_name + " uploaded"
+
+
+def swift_download(connection, container, prefix=None):
+    contents = ''
+    for object_data in connection.get_container(container, prefix)[1]:
+        body = connection.get_object(container, object_data['name'])[1]
+        contents += body
+        print container + '/' + object_data['name'] + " downloaded"
+
+    return contents

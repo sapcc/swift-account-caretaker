@@ -15,22 +15,34 @@
 # limitations under the License.
 
 import argparse
-import caretaker.collector
+import caretaker.accounts as acc
+import socket
 import sys
-
-from caretaker.common import get_swift_connection
 from os import environ
+
+from caretaker.common import swift_connection, swift_upload, swift_download
 
 
 def collect(arguments):
-    accounts = caretaker.collector.collect(arguments.device_dir)
+    accounts = acc.collect(arguments.device_dir)
+
     if arguments.verbose > 0:
-        caretaker.collector.output(accounts)
-    caretaker.collector.upload(accounts, get_swift_connection(arguments))
+        print acc.format(accounts, delimiter="\t", with_header=True)
+
+    obj_name = 'raw/' + socket.getfqdn() + '_accounts.csv'
+    contents = acc.format(accounts)
+    swift_upload(swift_connection(arguments), 'caretaker', obj_name, contents)
 
 
 def merge(arguments):
-    raise NotImplementedError
+    connection = swift_connection(arguments)
+    contents = swift_download(connection, 'caretaker', 'raw/')
+    accounts = acc.merge(contents)
+    if arguments.verbose > 0:
+        print acc.format(accounts, delimiter="\t", with_header=True)
+
+    contents = acc.format(accounts)
+    swift_upload(connection, 'caretaker', 'accounts.csv', contents)
 
 
 def verify(arguments):
