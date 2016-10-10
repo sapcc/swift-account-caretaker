@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import glob
+import fnmatch
 import os
 import sqlite3
 
@@ -45,7 +45,12 @@ def format(accounts, delimiter=',', with_header=False):
 
 def collect(device_dir='/srv/node', stale_reads_ok=False,
             reseller_prefix='AUTH_'):
-    matches = glob.glob(os.path.join(device_dir, '*/accounts/*.db'))
+    matches = []
+    for root, dirnames, filenames in os.walk(device_dir):
+        if fnmatch.fnmatch(root, '*/accounts/*'):
+            for filename in fnmatch.filter(filenames, '*.db'):
+                matches.append(os.path.join(root, filename))
+
     accounts = []
 
     # Evaluate the Account information
