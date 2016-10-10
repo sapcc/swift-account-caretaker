@@ -20,7 +20,7 @@ import socket
 import sys
 from os import environ
 
-from caretaker.common import swift_connection, swift_upload, swift_download
+from caretaker.common import *
 
 
 def collect(arguments):
@@ -29,24 +29,36 @@ def collect(arguments):
     if arguments.verbose > 0:
         print acc.format(accounts, delimiter="\t", with_header=True)
 
-    obj_name = 'raw/' + socket.getfqdn() + '_accounts.csv'
-    contents = acc.format(accounts)
-    swift_upload(swift_connection(arguments), 'caretaker', obj_name, contents)
+    if not arguments.no_upload:
+        obj_name = 'raw/' + socket.getfqdn() + '_accounts.csv'
+        contents = acc.format(accounts)
+        swift_upload(swift_connection(arguments), args.container, obj_name, contents)
 
 
 def merge(arguments):
     connection = swift_connection(arguments)
-    contents = swift_download(connection, 'caretaker', 'raw/')
+    contents = swift_download_all(connection, args.container, prefix='raw/')
     accounts = acc.merge(contents)
     if arguments.verbose > 0:
         print acc.format(accounts, delimiter="\t", with_header=True)
 
-    contents = acc.format(accounts)
-    swift_upload(connection, 'caretaker', 'accounts.csv', contents)
+    if not arguments.no_upload:
+        contents = acc.format(accounts)
+        swift_upload(connection, 'caretaker', 'accounts.csv', contents)
 
 
 def verify(arguments):
-    raise NotImplementedError
+    connection = swift_connection(arguments)
+    contents = swift_download(connection, args.container, object_name='accounts.csv')
+    accounts = acc.verify(contents, args)
+    if arguments.verbose > 0:
+        print acc.format(accounts, delimiter="\t", with_header=True)
+
+    if not arguments.no_upload:
+        contents = acc.format(accounts)
+        swift_upload(connection, 'caretaker', 'accounts_verified.csv', contents)
+
+    # TODO Filter status orphan and upload accounts_orphan.csv
 
 
 if __name__ == "__main__":
@@ -55,6 +67,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-v', '--verbose', action="count", default=0,
                         help='Increase verbosity')
+    parser.add_argument('-n', '--no-upload', action="store_true",
+                        help='No upload to swift')
     parser.add_argument('--os-username',
                         default=environ.get('OS_USERNAME'),
                         help='OpenStack username. Defaults to '
@@ -62,11 +76,11 @@ if __name__ == "__main__":
     parser.add_argument('--os-user-id',
                         default=environ.get('OS_USER_ID'),
                         help='OpenStack user ID. '
-                        'Defaults to env[OS_USER_ID].')
+                             'Defaults to env[OS_USER_ID].')
     parser.add_argument('--os-user-domain-id',
                         default=environ.get('OS_USER_DOMAIN_ID'),
                         help='OpenStack user domain ID. '
-                        'Defaults to env[OS_USER_DOMAIN_ID].')
+                             'Defaults to env[OS_USER_DOMAIN_ID].')
     parser.add_argument('--os-user-domain-name',
                         default=environ.get('OS_USER_DOMAIN_NAME'),
                         help='OpenStack user domain name. '
@@ -78,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('--os-tenant-id',
                         default=environ.get('OS_TENANT_ID'),
                         help='OpenStack tenant ID. '
-                        'Defaults to env[OS_TENANT_ID].')
+                             'Defaults to env[OS_TENANT_ID].')
     parser.add_argument('--os-tenant-name',
                         default=environ.get('OS_TENANT_NAME'),
                         help='OpenStack tenant name. '
@@ -86,7 +100,7 @@ if __name__ == "__main__":
     parser.add_argument('--os-project-id',
                         default=environ.get('OS_PROJECT_ID'),
                         help='OpenStack project ID. '
-                        'Defaults to env[OS_PROJECT_ID].')
+                             'Defaults to env[OS_PROJECT_ID].')
     parser.add_argument('--os-project-name',
                         default=environ.get('OS_PROJECT_NAME'),
                         help='OpenStack project name. '
@@ -94,7 +108,7 @@ if __name__ == "__main__":
     parser.add_argument('--os-project-domain-id',
                         default=environ.get('OS_PROJECT_DOMAIN_ID'),
                         help='OpenStack project domain ID. '
-                        'Defaults to env[OS_PROJECT_DOMAIN_ID].')
+                             'Defaults to env[OS_PROJECT_DOMAIN_ID].')
     parser.add_argument('--os-project-domain-name',
                         default=environ.get('OS_PROJECT_DOMAIN_NAME'),
                         help='OpenStack project domain name. '
@@ -127,8 +141,8 @@ if __name__ == "__main__":
     parser.add_argument('--os-cacert',
                         default=environ.get('OS_CACERT'),
                         help='Specify a CA bundle file to use in verifying a '
-                        'TLS (https) server certificate. '
-                        'Defaults to env[OS_CACERT].')
+                             'TLS (https) server certificate. '
+                             'Defaults to env[OS_CACERT].')
     parser.add_argument('--insecure',
                         default=environ.get('SWIFTCLIENT_INSECURE'),
                         help='Allow swiftclient to access servers without '
@@ -156,9 +170,33 @@ if __name__ == "__main__":
 
     parser_verify = subparsers.add_parser('verify', help='verify account info')
     parser_verify.set_defaults(func=verify)
-    parser_verify.add_argument('--clean-up',
-                               default=False,
-                               help='Wipe out orphaned accounts.')
+    parser_verify.add_argument('--container',
+                               default='caretaker',
+                               help='Container for caretaker. '
+                                    'Defaults to caretaker.')
+    parser_verify.add_argument('--os-ks-admin-username',
+                               default=environ.get('OS_KS_ADMIN_USERNAME'),
+                               help='OpenStack user name. '
+                                    'Defaults to env[OS_KS_ADMIN_USERNAME].')
+    parser_verify.add_argument('--os-ks-admin-user-id',
+                               default=environ.get('OS_KS_ADMIN_USER_ID'),
+                               help='OpenStack user ID. '
+                                    'Defaults to env[OS_KS_ADMIN_USER_ID].')
+    parser_verify.add_argument('--os-ks-admin-password',
+                               default=environ.get('OS_KS_ADMIN_PASSWORD'),
+                               help='OpenStack user name. '
+                                    'Defaults to env[OS_KS_ADMIN_PASSWORD].')
+    parser_verify.add_argument('--os-ks-admin-user-domain-name',
+                               default=environ.get('OS_KS_ADMIN_USER_DOMAIN_NAME'),
+                               help='OpenStack domain name. '
+                                    'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_NAME].')
+    parser_verify.add_argument('--os-ks-admin-user-domain-id',
+                               default=environ.get('OS_KS_ADMIN_USER_DOMAIN_ID'),
+                               help='OpenStack domain ID. '
+                                    'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
+    parser_verify.add_argument('--os-ks-insecure',
+                               default=environ.get('OS_KS_INSECURE'),
+                               help='Defaults to env[OS_KS_INSECURE].')
 
     args = parser.parse_args(sys.argv[1:])
     args.func(args)

@@ -1,2 +1,2 @@
+python-keystoneclient
 python-swiftclient
-python-keystoneclient>=1.3.0

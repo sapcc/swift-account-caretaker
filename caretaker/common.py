@@ -13,6 +13,9 @@
 # limitations under the License.
 
 from swiftclient.client import Connection
+from keystoneauth1.identity import v3
+from keystoneauth1 import session
+from keystoneclient.v3 import client
 
 
 def swift_connection(args):
@@ -46,7 +49,11 @@ def swift_upload(connection, container, obj_name, contents, content_type='text/p
     print container + '/' + obj_name + " uploaded"
 
 
-def swift_download(connection, container, prefix=None):
+def swift_download(connection, container, object_name):
+    return connection.get_object(container, object_name)[1]
+
+
+def swift_download_all(connection, container, prefix):
     contents = ''
     for object_data in connection.get_container(container, prefix)[1]:
         body = connection.get_object(container, object_data['name'])[1]
@@ -54,3 +61,15 @@ def swift_download(connection, container, prefix=None):
         print container + '/' + object_data['name'] + " downloaded"
 
     return contents
+
+
+def keystone_session(auth_url, admin_username, admin_user_id, admin_password,
+                     admin_user_domain_name, admin_user_domain_id,
+                     domain_id, insecure=False):
+
+    auth = v3.Password(auth_url=auth_url, username=admin_username, user_id=admin_user_id, password=admin_password,
+                       user_domain_name=admin_user_domain_name, user_domain_id=admin_user_domain_id,
+                       domain_id=domain_id)
+    sess = session.Session(auth=auth, verify=(not insecure))
+
+    return client.Client(session=sess)
