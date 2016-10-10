@@ -16,11 +16,14 @@ import glob
 import os
 import sqlite3
 
+from caretaker.common import keystone_session
+from operator import itemgetter
 from swift.account.backend import AccountBroker
 
 
-ACCOUNT_FIELDS = ['domain', 'id', 'project', 'object_count', 'bytes_used', 'quota_bytes',
-                  'created_at', 'status_deleted', 'deleted',
+UNKNOWN = '_unknown'
+ACCOUNT_FIELDS = ['id', 'account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
+                  'object_count', 'bytes_used', 'quota_bytes', 'status_deleted', 'deleted',
                   'created_at', 'status_changed_at', 'put_timestamp', 'delete_timestamp']
 
 
@@ -54,7 +57,10 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
 
             account = {'id': info['id'],
                        'account': info['account'],
-                       'project': info['account'].lstrip(reseller_prefix),
+                       'domain_name': UNKNOWN,
+                       'project_id': info['account'].lstrip(reseller_prefix),
+                       'project_name': UNKNOWN,
+                       'status': UNKNOWN,
                        'object_count': info['object_count'],
                        'bytes_used': info['bytes_used'],
                        'status_deleted': broker.is_status_deleted(),
@@ -64,9 +70,9 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
                        'put_timestamp': info['put_timestamp'],
                        'delete_timestamp': info['delete_timestamp']}
             if 'X-Account-Sysmeta-Project-Domain-Id' in meta:
-                account['domain'] = str(meta['X-Account-Sysmeta-Project-Domain-Id'].pop(0))
+                account['domain_id'] = str(meta['X-Account-Sysmeta-Project-Domain-Id'].pop(0))
             else:
-                account['domain'] = '_unknown'
+                account['domain_id'] = UNKNOWN
             if 'X-Account-Meta-Quota-Bytes' in meta:
                 account['quota_bytes'] = int(meta['X-Account-Meta-Quota-Bytes'][0])
             else:
@@ -84,17 +90,68 @@ def merge(contents):
     accounts = {}
     for line in contents.split("\n"):
         if line:
-            account = {}
-            i = 0
-            values = line.split(',')
-
-            # Reconstruct Account Dict
-            for field in ACCOUNT_FIELDS:
-                account[field] = values[i]
-                i += 1
-
+            account = _construct(line)
             # Only collect the IDs to skip duplicates
             accounts[account['id']] = account
 
-    return accounts.values()
+    return sorted(accounts.values(), key=itemgetter('domain_id', 'project_id'))
 
+
+def verify(contents, args):
+    accounts = []
+    for line in contents.split("\n"):
+        if line:
+            account = _construct(line)
+            accounts.append(account)
+
+    domain_id = None
+    domain_name = UNKNOWN
+    keystone = None
+    for account in accounts:
+        if account['domain_id'] == UNKNOWN:
+            continue
+
+        if domain_id != account['domain_id']:
+            domain_id = account['domain_id']
+            try:
+                keystone = keystone_session(
+                    auth_url=args.os_auth_url,
+                    admin_username=args.os_ks_admin_username,
+                    admin_user_id=args.os_ks_admin_user_id,
+                    admin_password=args.os_ks_admin_password,
+                    admin_user_domain_name=args.os_ks_admin_user_domain_name,
+                    admin_user_domain_id=args.os_ks_admin_user_domain_id,
+                    insecure=args.os_ks_insecure,
+                    domain_id=domain_id)
+                domain_name = keystone.domains.get(domain_id).name
+            except Exception as err:
+                keystone = None
+                domain_name = UNKNOWN
+                # TODO Log error
+                print err.message
+
+        if keystone:
+            account['domain_name'] = domain_name
+            try:
+                keystone_project = keystone.projects.get(account['project_id'])
+                if keystone_project:
+                    account['project_name'] = keystone_project.name
+                    account['status'] = 'Valid'
+            except Exception as err:
+                account['status'] = 'Orphan'
+                # TODO Log error
+                print err.message
+
+    return accounts
+
+
+def _construct(content):
+    account = {}
+    i = 0
+    values = content.split(',')
+    # Reconstruct Account Dict
+    for field in ACCOUNT_FIELDS:
+        account[field] = values[i]
+        i += 1
+
+    return account
