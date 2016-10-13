@@ -16,6 +16,7 @@
 
 import argparse
 import caretaker.accounts as acc
+import logging
 import socket
 import sys
 from os import environ
@@ -25,7 +26,6 @@ from caretaker.common import *
 
 def collect(arguments):
     accounts = acc.collect(arguments.device_dir)
-
     if arguments.verbose > 0:
         print acc.format(accounts, delimiter="\t", with_header=True)
 
@@ -69,6 +69,9 @@ if __name__ == "__main__":
                         help='Increase verbosity')
     parser.add_argument('-n', '--no-upload', action="store_true",
                         help='No upload to swift')
+    parser.add_argument('-l', '--log-level',
+                        default=environ.get('LOG_LEVEL', 'warn').upper(),
+                        help='Loglevel')
     parser.add_argument('--os-username',
                         default=environ.get('OS_USERNAME'),
                         help='OpenStack username. Defaults to '
@@ -199,4 +202,6 @@ if __name__ == "__main__":
                                help='Defaults to env[OS_KS_INSECURE].')
 
     args = parser.parse_args(sys.argv[1:])
+    logging.basicConfig(level=args.log_level)
+
     args.func(args)

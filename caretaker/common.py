@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from swiftclient.client import Connection
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client
+from swiftclient.client import Connection
 
 
 def swift_connection(args):
@@ -46,8 +46,6 @@ def swift_upload(connection, container, obj_name, contents, content_type='text/p
     connection.put_container(container)
     connection.put_object(container, obj_name, contents=contents, content_type=content_type)
 
-    print container + '/' + obj_name + " uploaded"
-
 
 def swift_download(connection, container, object_name):
     return connection.get_object(container, object_name)[1]
@@ -58,7 +56,6 @@ def swift_download_all(connection, container, prefix):
     for object_data in connection.get_container(container, prefix)[1]:
         body = connection.get_object(container, object_data['name'])[1]
         contents += body
-        print container + '/' + object_data['name'] + " downloaded"
 
     return contents
 
