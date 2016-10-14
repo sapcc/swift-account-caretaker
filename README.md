@@ -40,5 +40,5 @@ swift-account-caretaker merge --help
 swift-account-caretaker verify --help
 
 source .caretaker
-swift-account-caretaker --log-level info collect
+swift-account-caretaker --log-level=info collect
 ```
