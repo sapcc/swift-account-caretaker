@@ -27,9 +27,10 @@ UNKNOWN = '_unknown'
 ACCOUNT_FIELDS = ['account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
                   'object_count', 'bytes_used', 'quota_bytes', 'status_deleted', 'deleted',
                   'created_at', 'status_changed_at', 'put_timestamp', 'delete_timestamp']
+SEP = ';'
 
 
-def format(accounts, delimiter=',', with_header=False):
+def format(accounts, delimiter=SEP, with_header=False):
     result = ''
 
     if with_header:
@@ -164,7 +165,7 @@ def verify(contents, args):
 def _construct(content):
     account = {}
     i = 0
-    values = content.split(',')
+    values = content.split(SEP)
     # Reconstruct Account Dict
     for field in ACCOUNT_FIELDS:
         account[field] = values[i]
