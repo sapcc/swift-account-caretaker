@@ -30,33 +30,33 @@ def collect(arguments):
         print acc.format(accounts, delimiter="\t", with_header=True)
 
     if not arguments.no_upload:
-        obj_name = 'raw/' + socket.getfqdn() + '_accounts.csv'
+        obj_name = 'collect/' + socket.getfqdn() + '_accounts.csv'
         contents = acc.format(accounts)
         swift_upload(swift_connection(arguments), args.container, obj_name, contents)
 
 
 def merge(arguments):
     connection = swift_connection(arguments)
-    contents = swift_download_all(connection, args.container, prefix='raw/')
+    contents = swift_download_all(connection, args.container, prefix='collect/')
     accounts = acc.merge(contents)
     if arguments.verbose > 0:
         print acc.format(accounts, delimiter="\t", with_header=True)
 
     if not arguments.no_upload:
         contents = acc.format(accounts)
-        swift_upload(connection, 'caretaker', 'accounts.csv', contents)
+        swift_upload(connection, 'caretaker', 'merge/accounts.csv', contents)
 
 
 def verify(arguments):
     connection = swift_connection(arguments)
-    contents = swift_download(connection, args.container, object_name='accounts.csv')
+    contents = swift_download(connection, args.container, object_name='merge/accounts.csv')
     accounts = acc.verify(contents, args)
     if arguments.verbose > 0:
         print acc.format(accounts, delimiter="\t", with_header=True)
 
     if not arguments.no_upload:
         contents = acc.format(accounts, with_header=True)
-        swift_upload(connection, 'caretaker', 'accounts_verified.csv', contents)
+        swift_upload(connection, 'caretaker', 'accounts.csv', contents)
 
     # TODO Filter status orphan and upload accounts_orphan.csv
 

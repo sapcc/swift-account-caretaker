@@ -49,6 +49,7 @@ def format(accounts, delimiter=SEP, with_header=False):
 def collect(device_dir='/srv/node', stale_reads_ok=False,
             reseller_prefix='AUTH_'):
     matches = []
+    # TODO This is not efficient
     for root, dirnames, filenames in os.walk(device_dir):
         if fnmatch.fnmatch(root, '*/accounts/*'):
             for filename in fnmatch.filter(filenames, '*.db'):
