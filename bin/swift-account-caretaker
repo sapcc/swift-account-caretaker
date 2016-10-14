@@ -55,7 +55,7 @@ def verify(arguments):
         print acc.format(accounts, delimiter="\t", with_header=True)
 
     if not arguments.no_upload:
-        contents = acc.format(accounts)
+        contents = acc.format(accountswith_header=True)
         swift_upload(connection, 'caretaker', 'accounts_verified.csv', contents)
 
     # TODO Filter status orphan and upload accounts_orphan.csv
