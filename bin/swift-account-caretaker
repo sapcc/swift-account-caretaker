@@ -70,7 +70,7 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--no-upload', action="store_true",
                         help='No upload to swift')
     parser.add_argument('-l', '--log-level',
-                        default=environ.get('LOG_LEVEL', 'warn').upper(),
+                        default=environ.get('LOG_LEVEL', 'warn'),
                         help='Loglevel')
     parser.add_argument('--os-username',
                         default=environ.get('OS_USERNAME'),
@@ -202,6 +202,6 @@ if __name__ == "__main__":
                                help='Defaults to env[OS_KS_INSECURE].')
 
     args = parser.parse_args(sys.argv[1:])
-    logging.basicConfig(level=args.log_level)
+    logging.basicConfig(level=args.log_level.upper())
 
     args.func(args)
