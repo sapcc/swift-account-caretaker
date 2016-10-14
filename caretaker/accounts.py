@@ -123,7 +123,6 @@ def verify(contents, args):
 
     for account in accounts:
         if account['domain_id'] == UNKNOWN:
-            LOG.warning("Domain {0} will be skipped".format(i, account['domain_id']))
             continue
 
         if domain_id != account['domain_id']:
