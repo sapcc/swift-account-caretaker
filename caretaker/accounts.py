@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import fnmatch
+import logging
 import os
 import sqlite3
 
@@ -21,6 +22,7 @@ from operator import itemgetter
 from swift.account.backend import AccountBroker
 
 
+LOG = logging.getLogger(__name__)
 UNKNOWN = '_unknown'
 ACCOUNT_FIELDS = ['id', 'account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
                   'object_count', 'bytes_used', 'quota_bytes', 'status_deleted', 'deleted',
@@ -83,22 +85,27 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             else:
                 account['quota_bytes'] = 0
 
+            LOG.debug("Account {}".format(account))
+
             accounts.append(account)
         except sqlite3.OperationalError as err:
-            # TODO Log error
-            print err.message
+            LOG.error(err.message)
 
+    LOG.info("{0} accounts collected".format(len(accounts)))
     return accounts
 
 
 def merge(contents):
     accounts = {}
+    i = 0
     for line in contents.split("\n"):
         if line:
+            i += 1
             account = _construct(line)
             # Only collect the IDs to skip duplicates
             accounts[account['id']] = account
 
+    LOG.info("{0} accounts merged into {1} unique".format(i, len(accounts)))
     return sorted(accounts.values(), key=itemgetter('domain_id', 'project_id'))
 
 
@@ -112,6 +119,8 @@ def verify(contents, args):
     domain_id = None
     domain_name = UNKNOWN
     keystone = None
+    i = 0
+
     for account in accounts:
         if account['domain_id'] == UNKNOWN:
             continue
@@ -132,8 +141,7 @@ def verify(contents, args):
             except Exception as err:
                 keystone = None
                 domain_name = UNKNOWN
-                # TODO Log error
-                print err.message
+                LOG.warning(err.message)
 
         if keystone:
             account['domain_name'] = domain_name
@@ -142,11 +150,14 @@ def verify(contents, args):
                 if keystone_project:
                     account['project_name'] = keystone_project.name
                     account['status'] = 'Valid'
+                    i += 1
+                    LOG.debug("Account {0} is valid in {1}/{2}".format(
+                        account['account'], domain_name, keystone_project))
             except Exception as err:
                 account['status'] = 'Orphan'
-                # TODO Log error
-                print err.message
+                LOG.warning(err.message)
 
+    LOG.info("{0} of {1} accounts were valid".format(i, len(accounts)))
     return accounts
 
 
