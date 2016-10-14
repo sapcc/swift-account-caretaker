@@ -53,6 +53,7 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             for filename in fnmatch.filter(filenames, '*.db'):
                 matches.append(os.path.join(root, filename))
 
+    LOG.info("{0} account databases found".format(len(matches)))
     accounts = []
 
     # Evaluate the Account information
