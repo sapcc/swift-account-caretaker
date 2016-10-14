@@ -16,7 +16,6 @@
 
 import argparse
 import caretaker.accounts as acc
-import logging
 import socket
 import sys
 from os import environ
@@ -58,7 +57,17 @@ def verify(arguments):
         contents = acc.format(accounts, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts.csv', contents)
 
-    # TODO Filter status orphan and upload accounts_orphan.csv
+        orphans = list(filter(lambda d: d['status'] == acc.STATUS_ORPHAN, accounts))
+        contents = acc.format(orphans, with_header=True)
+        swift_upload(connection, 'caretaker', 'accounts_orphan.csv', contents)
+
+        unknown = list(filter(lambda d: d['status'] == acc.STATUS_UNKNOWN, accounts))
+        contents = acc.format(unknown, with_header=True)
+        swift_upload(connection, 'caretaker', 'accounts_unknown.csv', contents)
+
+        valid = list(filter(lambda d: d['status'] == acc.STATUS_VALID, accounts))
+        contents = acc.format(valid, with_header=True)
+        swift_upload(connection, 'caretaker', 'accounts_valid.csv', contents)
 
 
 if __name__ == "__main__":

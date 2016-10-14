@@ -23,11 +23,13 @@ from swift.account.backend import AccountBroker
 
 
 LOG = logging.getLogger(__name__)
-UNKNOWN = '_unknown'
 ACCOUNT_FIELDS = ['account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
                   'object_count', 'bytes_used', 'quota_bytes', 'status_deleted', 'deleted',
                   'created_at', 'status_changed_at', 'put_timestamp', 'delete_timestamp']
 SEP = ';'
+STATUS_UNKNOWN = '_unknown'
+STATUS_VALID = 'VALID'
+STATUS_ORPHAN = 'ORPHAN'
 
 
 def format(accounts, delimiter=SEP, with_header=False):
@@ -66,10 +68,10 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             meta = broker.metadata
 
             account = {'account': info['account'],
-                       'domain_name': UNKNOWN,
+                       'domain_name': STATUS_UNKNOWN,
                        'project_id': info['account'].lstrip(reseller_prefix),
-                       'project_name': UNKNOWN,
-                       'status': UNKNOWN,
+                       'project_name': STATUS_UNKNOWN,
+                       'status': STATUS_UNKNOWN,
                        'object_count': info['object_count'],
                        'bytes_used': info['bytes_used'],
                        'status_deleted': broker.is_status_deleted(),
@@ -81,7 +83,7 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             if 'X-Account-Sysmeta-Project-Domain-Id' in meta:
                 account['domain_id'] = str(meta['X-Account-Sysmeta-Project-Domain-Id'].pop(0))
             else:
-                account['domain_id'] = UNKNOWN
+                account['domain_id'] = STATUS_UNKNOWN
             if 'X-Account-Meta-Quota-Bytes' in meta:
                 account['quota_bytes'] = int(meta['X-Account-Meta-Quota-Bytes'][0])
             else:
@@ -119,12 +121,12 @@ def verify(contents, args):
             accounts.append(account)
 
     domain_id = None
-    domain_name = UNKNOWN
+    domain_name = STATUS_UNKNOWN
     keystone = None
     i = 0
 
     for account in accounts:
-        if account['domain_id'] == UNKNOWN:
+        if account['domain_id'] == STATUS_UNKNOWN:
             continue
 
         if domain_id != account['domain_id']:
@@ -142,7 +144,7 @@ def verify(contents, args):
                 domain_name = keystone.domains.get(domain_id).name
             except Exception as err:
                 keystone = None
-                domain_name = UNKNOWN
+                domain_name = STATUS_UNKNOWN
                 LOG.warning(err.message)
 
         if keystone:
@@ -151,12 +153,12 @@ def verify(contents, args):
                 keystone_project = keystone.projects.get(account['project_id'])
                 if keystone_project:
                     account['project_name'] = keystone_project.name
-                    account['status'] = 'Valid'
+                    account['status'] = STATUS_VALID
                     i += 1
                     LOG.debug("Account {0} is valid in {1}/{2}".format(
                         account['account'], domain_name, keystone_project))
             except Exception as err:
-                account['status'] = 'Orphan'
+                account['status'] = STATUS_ORPHAN
                 LOG.warning(err.message)
 
     LOG.info("{0} of {1} accounts were valid".format(i, len(accounts)))

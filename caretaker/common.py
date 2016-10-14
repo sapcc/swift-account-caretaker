@@ -62,7 +62,7 @@ def swift_download(connection, container, object_name):
 def swift_download_all(connection, container, prefix):
     contents = ''
     i = 0
-    for object_data in connection.get_container(container, prefix)[1]:
+    for object_data in connection.get_container(container, prefix=prefix)[1]:
         body = connection.get_object(container, object_data['name'])[1]
         contents += body
         i += 1
