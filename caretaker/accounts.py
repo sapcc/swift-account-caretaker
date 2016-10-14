@@ -24,7 +24,7 @@ from swift.account.backend import AccountBroker
 
 LOG = logging.getLogger(__name__)
 UNKNOWN = '_unknown'
-ACCOUNT_FIELDS = ['id', 'account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
+ACCOUNT_FIELDS = ['account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
                   'object_count', 'bytes_used', 'quota_bytes', 'status_deleted', 'deleted',
                   'created_at', 'status_changed_at', 'put_timestamp', 'delete_timestamp']
 
@@ -63,8 +63,7 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             info = broker.get_info()
             meta = broker.metadata
 
-            account = {'id': info['id'],
-                       'account': info['account'],
+            account = {'account': info['account'],
                        'domain_name': UNKNOWN,
                        'project_id': info['account'].lstrip(reseller_prefix),
                        'project_name': UNKNOWN,
@@ -104,7 +103,7 @@ def merge(contents):
             i += 1
             account = _construct(line)
             # Only collect the IDs to skip duplicates
-            accounts[account['id']] = account
+            accounts[account['account']] = account
 
     LOG.info("{0} accounts merged into {1} unique".format(i, len(accounts)))
     return sorted(accounts.values(), key=itemgetter('domain_id', 'project_id'))
@@ -124,6 +123,7 @@ def verify(contents, args):
 
     for account in accounts:
         if account['domain_id'] == UNKNOWN:
+            LOG.warning("Domain {0} will be skipped".format(i, account['domain_id']))
             continue
 
         if domain_id != account['domain_id']:
