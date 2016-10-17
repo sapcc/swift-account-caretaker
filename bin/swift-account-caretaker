@@ -157,6 +157,7 @@ if __name__ == "__main__":
                              'Defaults to env[OS_CACERT].')
     parser.add_argument('--insecure',
                         default=environ.get('SWIFTCLIENT_INSECURE'),
+                        action="store_true",
                         help='Allow swiftclient to access servers without '
                              'having to verify the SSL certificate. '
                              'Defaults to env[SWIFTCLIENT_INSECURE] '
@@ -206,7 +207,7 @@ if __name__ == "__main__":
                                default=environ.get('OS_KS_ADMIN_USER_DOMAIN_ID'),
                                help='OpenStack domain ID. '
                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
-    parser_verify.add_argument('--os-ks-insecure',
+    parser_verify.add_argument('--os-ks-insecure', action="store_true",
                                default=environ.get('OS_KS_INSECURE'),
                                help='Defaults to env[OS_KS_INSECURE].')
 
