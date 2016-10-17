@@ -13,19 +13,20 @@
 # limitations under the License.
 
 import fnmatch
+import glob
 import logging
 import os
 import sqlite3
 
 from caretaker.common import keystone_session
 from operator import itemgetter
-from swift.account.backend import AccountBroker
+from swift.account.backend import AccountBroker, DATADIR
 
 
 LOG = logging.getLogger(__name__)
 ACCOUNT_FIELDS = ['account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
-                  'object_count', 'bytes_used', 'quota_bytes', 'status_deleted', 'deleted',
-                  'created_at', 'status_changed_at', 'put_timestamp', 'delete_timestamp']
+                  'object_count', 'bytes_used', 'quota_bytes',
+                  'status_deleted', 'created_at', 'delete_timestamp']
 SEP = ';'
 STATUS_UNKNOWN = '_unknown'
 STATUS_VALID = 'VALID'
@@ -51,9 +52,11 @@ def format(accounts, delimiter=SEP, with_header=False):
 def collect(device_dir='/srv/node', stale_reads_ok=False,
             reseller_prefix='AUTH_'):
     matches = []
-    # TODO This is not efficient
-    for root, dirnames, filenames in os.walk(device_dir):
-        if fnmatch.fnmatch(root, '*/accounts/*'):
+
+    account_dirs = glob.glob(os.path.join(device_dir, '*/', DATADIR))
+    for account_dir in account_dirs:
+        LOG.debug("scanning {0} for account databases".format(account_dir))
+        for root, dirnames, filenames in os.walk(account_dir, topdown=False):
             for filename in fnmatch.filter(filenames, '*.db'):
                 matches.append(os.path.join(root, filename))
 
@@ -75,10 +78,7 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
                        'object_count': info['object_count'],
                        'bytes_used': info['bytes_used'],
                        'status_deleted': broker.is_status_deleted(),
-                       'deleted': broker.is_deleted(),
                        'created_at': info['created_at'],
-                       'status_changed_at': info['status_changed_at'],
-                       'put_timestamp': info['put_timestamp'],
                        'delete_timestamp': info['delete_timestamp']}
             if 'X-Account-Sysmeta-Project-Domain-Id' in meta:
                 account['domain_id'] = str(meta['X-Account-Sysmeta-Project-Domain-Id'].pop(0))
