@@ -189,7 +189,8 @@ def verify(contents, args):
             account['status'] = STATUS_INVALID
             orphan += 1
 
-    LOG.info("Account verification: Valid {0}, Orphans {1}, Deleted {2}, Overall {3}".format(valid, orphan, deleted, len(accounts)))
+    LOG.info("Account verification: Valid {0}, Orphans {1}, Deleted {2}, Overall {3}".format(valid, orphan, deleted,
+                                                                                             len(accounts)))
     return accounts
 
 
