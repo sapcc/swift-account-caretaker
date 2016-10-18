@@ -57,7 +57,7 @@ def verify(arguments):
         contents = acc.format(accounts, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts.csv', contents)
 
-        orphans = list(filter(lambda d: d['status'] == acc.STATUS_ORPHAN, accounts))
+        orphans = list(filter(lambda d: d['status'] in (acc.STATUS_ORPHAN, acc.STATUS_INVALID), accounts))
         contents = acc.format(orphans, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts_orphan.csv', contents)
 

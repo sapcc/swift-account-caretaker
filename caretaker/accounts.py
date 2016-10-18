@@ -21,7 +21,7 @@ import sqlite3
 from caretaker.common import keystone_session
 from operator import itemgetter
 from swift.account.backend import AccountBroker, DATADIR
-
+from keystoneclient import exceptions as ke
 
 LOG = logging.getLogger(__name__)
 ACCOUNT_FIELDS = ['account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
@@ -30,6 +30,7 @@ ACCOUNT_FIELDS = ['account', 'domain_id', 'domain_name', 'project_id', 'project_
 SEP = ';'
 STATUS_UNKNOWN = '_unknown'
 STATUS_VALID = 'VALID'
+STATUS_INVALID = 'INVALID'
 STATUS_ORPHAN = 'ORPHAN'
 
 
@@ -69,6 +70,10 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
         try:
             info = broker.get_info()
             meta = broker.metadata
+
+            # This account is used by the object expirer
+            if info['account'] == '.expiring_objects':
+                continue
 
             account = {'account': info['account'],
                        'domain_name': STATUS_UNKNOWN,
@@ -123,7 +128,8 @@ def verify(contents, args):
     domain_id = None
     domain_name = STATUS_UNKNOWN
     keystone = None
-    i = 0
+    valid = 0
+    orphan = 0
 
     for account in accounts:
         if account['domain_id'] == STATUS_UNKNOWN:
@@ -142,26 +148,41 @@ def verify(contents, args):
                     insecure=args.os_ks_insecure,
                     domain_id=domain_id)
                 domain_name = keystone.domains.get(domain_id).name
+            except ke.BadRequest as err:
+                # Invalid Domain, e.g. it was disabled
+                keystone = None
+                domain_name = STATUS_INVALID
+                LOG.debug("DomainID {0}: {1}".format(domain_id, err.message))
+
             except Exception as err:
                 keystone = None
                 domain_name = STATUS_UNKNOWN
-                LOG.warning(err.message)
+                LOG.warning("DomainID {0}: {1}".format(domain_id, err.message))
 
+        account['domain_name'] = domain_name
         if keystone:
-            account['domain_name'] = domain_name
             try:
                 keystone_project = keystone.projects.get(account['project_id'])
                 if keystone_project:
+                    # project exist
                     account['project_name'] = keystone_project.name
                     account['status'] = STATUS_VALID
-                    i += 1
+                    valid += 1
                     LOG.debug("Account {0} is valid in {1}/{2}".format(
                         account['account'], domain_name, keystone_project))
-            except Exception as err:
+            except ke.NotFound as err:
+                # Project does not exists in domain
                 account['status'] = STATUS_ORPHAN
-                LOG.warning(err.message)
+                orphan += 1
+                LOG.debug("DomainID {0}/ProjectID {1}: {2}".format(domain_id, account['project_id'], err.message))
+            except Exception as err:
+                LOG.warning("DomainID {0}/ProjectID {1}: {2}".format(domain_id, account['project_id'], err.message))
+        elif domain_name == STATUS_INVALID:
+            # Project in invalid domain
+            account['status'] = STATUS_INVALID
+            orphan += 1
 
-    LOG.info("{0} of {1} accounts were valid".format(i, len(accounts)))
+    LOG.info("Account verification: Valid {0}, Orphans {1}, Overall {2}".format(valid, orphan, len(accounts)))
     return accounts
 
 
