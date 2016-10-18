@@ -32,6 +32,7 @@ STATUS_UNKNOWN = '_unknown'
 STATUS_VALID = 'VALID'
 STATUS_INVALID = 'INVALID'
 STATUS_ORPHAN = 'ORPHAN'
+STATUS_DELETED = 'DELETED'
 
 
 def format(accounts, delimiter=SEP, with_header=False):
@@ -130,8 +131,13 @@ def verify(contents, args):
     keystone = None
     valid = 0
     orphan = 0
+    deleted = 0
 
     for account in accounts:
+        if account['status_deleted'] == 'True':
+            account['status'] = STATUS_DELETED
+            deleted += 1
+
         if account['domain_id'] == STATUS_UNKNOWN:
             continue
 
@@ -150,8 +156,8 @@ def verify(contents, args):
                 domain_name = keystone.domains.get(domain_id).name
             except ke.BadRequest as err:
                 # Invalid Domain, e.g. it was disabled
-                keystone = None
                 domain_name = STATUS_INVALID
+                keystone = None
                 LOG.debug("DomainID {0}: {1}".format(domain_id, err.message))
 
             except Exception as err:
@@ -172,8 +178,9 @@ def verify(contents, args):
                         account['account'], domain_name, keystone_project))
             except ke.NotFound as err:
                 # Project does not exists in domain
-                account['status'] = STATUS_ORPHAN
-                orphan += 1
+                if not account['status_deleted'] == 'True':
+                    account['status'] = STATUS_ORPHAN
+                    orphan += 1
                 LOG.debug("DomainID {0}/ProjectID {1}: {2}".format(domain_id, account['project_id'], err.message))
             except Exception as err:
                 LOG.warning("DomainID {0}/ProjectID {1}: {2}".format(domain_id, account['project_id'], err.message))
@@ -182,7 +189,7 @@ def verify(contents, args):
             account['status'] = STATUS_INVALID
             orphan += 1
 
-    LOG.info("Account verification: Valid {0}, Orphans {1}, Overall {2}".format(valid, orphan, len(accounts)))
+    LOG.info("Account verification: Valid {0}, Orphans {1}, Deleted {2}, Overall {3}".format(valid, orphan, deleted, len(accounts)))
     return accounts
 
 
