@@ -14,6 +14,9 @@ As account metadata for the same swift account is replicated in the cluster (usa
 ## Phase 3 - Verify
 The list of swift accounts is verified against keystone, whether the corresponding project is still present in the domain. Information like domain name and project name will be added to the account info. Accounts which can not be found in keystone, will be marked with status Orphan. Domains and projects which where a keystone connection can not be established (e.g. no authorizations) will be marked with status unknown.
 
+## Phase 2+3 - Mergify
+Do step 2 and 3 in one step.
+
 ## Phase 4 - Cleanup
 Accounts with status Ophan can be cleaned up by the swift reseller. Currently not supported - manual step.
 
