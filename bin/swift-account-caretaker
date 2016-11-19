@@ -70,6 +70,11 @@ def verify(arguments):
         swift_upload(connection, 'caretaker', 'accounts_valid.csv', contents)
 
 
+def mergify(arguments):
+    merge(arguments)
+    verify(arguments)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -126,9 +131,9 @@ if __name__ == "__main__":
                         help='OpenStack project domain name. '
                              'Defaults to env[OS_PROJECT_DOMAIN_NAME].')
     parser.add_argument('--os-auth-version',
-                        default='3',
+                        default=environ.get('OS_AUTH_VERSION', '3'),
                         help='OpenStack region name. '
-                             'Defaults to env[OS_REGION_NAME].')
+                             'Defaults to env[OS_AUTH_VERSION].')
     parser.add_argument('--os-auth-url',
                         default=environ.get('OS_AUTH_URL'),
                         help='OpenStack auth URL. Defaults to '
@@ -181,7 +186,7 @@ if __name__ == "__main__":
                               help='Container for caretaker. '
                                    'Defaults to caretaker.')
 
-    parser_verify = subparsers.add_parser('verify', help='verify account info')
+    parser_verify = subparsers.add_parser('verify', help='Verify account info')
     parser_verify.set_defaults(func=verify)
     parser_verify.add_argument('--container',
                                default='caretaker',
@@ -210,6 +215,36 @@ if __name__ == "__main__":
     parser_verify.add_argument('--os-ks-insecure', action="store_true",
                                default=environ.get('OS_KS_INSECURE'),
                                help='Defaults to env[OS_KS_INSECURE].')
+
+    parser_mergify = subparsers.add_parser('mergify', help='Merge and verify account info')
+    parser_mergify.set_defaults(func=mergify)
+    parser_mergify.add_argument('--container',
+                                default='caretaker',
+                                help='Container for caretaker. '
+                                     'Defaults to caretaker.')
+    parser_mergify.add_argument('--os-ks-admin-username',
+                                default=environ.get('OS_KS_ADMIN_USERNAME'),
+                                help='OpenStack user name. '
+                                     'Defaults to env[OS_KS_ADMIN_USERNAME].')
+    parser_mergify.add_argument('--os-ks-admin-user-id',
+                                default=environ.get('OS_KS_ADMIN_USER_ID'),
+                                help='OpenStack user ID. '
+                                     'Defaults to env[OS_KS_ADMIN_USER_ID].')
+    parser_mergify.add_argument('--os-ks-admin-password',
+                                default=environ.get('OS_KS_ADMIN_PASSWORD'),
+                                help='OpenStack user name. '
+                                     'Defaults to env[OS_KS_ADMIN_PASSWORD].')
+    parser_mergify.add_argument('--os-ks-admin-user-domain-name',
+                                default=environ.get('OS_KS_ADMIN_USER_DOMAIN_NAME'),
+                                help='OpenStack domain name. '
+                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_NAME].')
+    parser_mergify.add_argument('--os-ks-admin-user-domain-id',
+                                default=environ.get('OS_KS_ADMIN_USER_DOMAIN_ID'),
+                                help='OpenStack domain ID. '
+                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
+    parser_mergify.add_argument('--os-ks-insecure', action="store_true",
+                                default=environ.get('OS_KS_INSECURE'),
+                                help='Defaults to env[OS_KS_INSECURE].')
 
     args = parser.parse_args(sys.argv[1:])
     logging.basicConfig(level=args.log_level.upper())
