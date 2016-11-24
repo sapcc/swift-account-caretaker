@@ -16,6 +16,7 @@
 
 import argparse
 import caretaker.accounts as acc
+import datetime
 import socket
 import sys
 from os import environ
@@ -56,6 +57,11 @@ def verify(arguments):
     if not arguments.no_upload:
         contents = acc.format(accounts, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts.csv', contents)
+
+        if arguments.history > 0:
+            obj_name = 'history/accounts' + datetime.date.today().strftime("_%Y_%m_%d") + '.csv'
+            headers = {'X-Delete-After': (arguments.history * 24 * 60 * 60)}  # keep for x days
+            swift_upload(connection, 'caretaker', obj_name, contents, headers=headers)
 
         orphans = list(filter(lambda d: d['status'] in (acc.STATUS_ORPHAN, acc.STATUS_INVALID), accounts))
         contents = acc.format(orphans, with_header=True)
@@ -192,6 +198,8 @@ if __name__ == "__main__":
                                default='caretaker',
                                help='Container for caretaker. '
                                     'Defaults to caretaker.')
+    parser_verify.add_argument('--history', default=0, type=int,
+                               help='Keep a copy of the accounts file for n days.')
     parser_verify.add_argument('--os-ks-admin-username',
                                default=environ.get('OS_KS_ADMIN_USERNAME'),
                                help='OpenStack user name. '
@@ -222,6 +230,8 @@ if __name__ == "__main__":
                                 default='caretaker',
                                 help='Container for caretaker. '
                                      'Defaults to caretaker.')
+    parser_mergify.add_argument('--history', default=0, type=int,
+                                help='Keep a copy of the accounts file for n days.')
     parser_mergify.add_argument('--os-ks-admin-username',
                                 default=environ.get('OS_KS_ADMIN_USERNAME'),
                                 help='OpenStack user name. '
