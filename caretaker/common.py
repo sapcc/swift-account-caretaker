@@ -47,9 +47,9 @@ def swift_connection(args):
                       os_options=os_options)
 
 
-def swift_upload(connection, container, object_name, contents, content_type='text/plain'):
+def swift_upload(connection, container, object_name, contents, content_type='text/plain', headers=None):
     connection.put_container(container)
-    connection.put_object(container, object_name, contents=contents, content_type=content_type)
+    connection.put_object(container, object_name, contents=contents, content_type=content_type, headers=headers)
     LOG.info("{0}/{1}/{2} successfully uploaded".format(connection.url, container, object_name))
 
 
