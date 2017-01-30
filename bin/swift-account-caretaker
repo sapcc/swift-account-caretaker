@@ -52,10 +52,10 @@ def verify(arguments):
     contents = swift_download(connection, args.container, object_name='merge/accounts.csv')
     accounts = acc.verify(contents, args)
     if arguments.verbose > 0:
-        print acc.format(accounts, delimiter="\t", with_header=True)
+        print acc.format(accounts, all_fields=True, delimiter="\t", with_header=True)
 
     if not arguments.no_upload:
-        contents = acc.format(accounts, with_header=True)
+        contents = acc.format(accounts, all_fields=True, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts.csv', contents)
 
         if arguments.history > 0:
@@ -64,15 +64,15 @@ def verify(arguments):
             swift_upload(connection, 'caretaker', obj_name, contents, headers=headers)
 
         orphans = list(filter(lambda d: d['status'] in (acc.STATUS_ORPHAN, acc.STATUS_INVALID), accounts))
-        contents = acc.format(orphans, with_header=True)
+        contents = acc.format(orphans, all_fields=True, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts_orphan.csv', contents)
 
         unknown = list(filter(lambda d: d['status'] == acc.STATUS_UNKNOWN, accounts))
-        contents = acc.format(unknown, with_header=True)
+        contents = acc.format(unknown, all_fields=True, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts_unknown.csv', contents)
 
         valid = list(filter(lambda d: d['status'] == acc.STATUS_VALID, accounts))
-        contents = acc.format(valid, with_header=True)
+        contents = acc.format(valid, all_fields=True, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts_valid.csv', contents)
 
 

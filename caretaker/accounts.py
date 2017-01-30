@@ -25,9 +25,10 @@ from keystoneclient import exceptions as ke
 
 
 LOG = logging.getLogger(__name__)
-ACCOUNT_FIELDS = ['account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
-                  'object_count', 'bytes_used', 'quota_bytes',
+ACCOUNT_FIELDS = ['account', 'domain_id', 'project_id', 'object_count', 'bytes_used', 'quota_bytes',
                   'status_deleted', 'created_at', 'delete_timestamp']
+ADD_ACCOUNT_FIELDS = ['backend', 'domain_name', 'project_name', 'status']
+ALL_ACCOUNT_FIELDS = ADD_ACCOUNT_FIELDS + ACCOUNT_FIELDS
 SEP = ';'
 STATUS_UNKNOWN = '_unknown'
 STATUS_VALID = 'VALID'
@@ -36,15 +37,18 @@ STATUS_ORPHAN = 'ORPHAN'
 STATUS_DELETED = 'DELETED'
 
 
-def format(accounts, delimiter=SEP, with_header=False):
+def format(accounts, all_fields=False, delimiter=SEP, with_header=False):
     result = ''
+    fields = ACCOUNT_FIELDS
+    if all_fields:
+        fields= ALL_ACCOUNT_FIELDS
 
     if with_header:
-        result = delimiter.join(ACCOUNT_FIELDS) + "\n"
+        result = delimiter.join(fields) + "\n"
 
     for account in accounts:
         line = []
-        for field in ACCOUNT_FIELDS:
+        for field in fields:
             line.append(str(account[field]))
 
         result += delimiter.join(line) + "\n"
@@ -80,8 +84,6 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             account = {'account': info['account'],
                        'domain_name': STATUS_UNKNOWN,
                        'project_id': info['account'].lstrip(reseller_prefix),
-                       'project_name': STATUS_UNKNOWN,
-                       'status': STATUS_UNKNOWN,
                        'object_count': info['object_count'],
                        'bytes_used': info['bytes_used'],
                        'status_deleted': broker.is_status_deleted(),
@@ -125,8 +127,11 @@ def verify(contents, args):
     for line in contents.split("\n"):
         if line:
             account = _construct(line)
+            for field in ADD_ACCOUNT_FIELDS:
+                account[field] = STATUS_UNKNOWN
             accounts.append(account)
 
+    scraped_domains = {}
     if args.os_ks_scrape_auth_url:
         # Getting a whole project scrape
         sess = keystone_session(
