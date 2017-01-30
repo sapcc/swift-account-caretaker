@@ -18,6 +18,7 @@ from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client
 from swiftclient.client import Connection
+from urlparse import urlparse
 
 
 LOG = logging.getLogger(__name__)
@@ -73,11 +74,43 @@ def swift_download_all(connection, container, prefix):
 
 def keystone_session(auth_url, admin_username, admin_user_id, admin_password,
                      admin_user_domain_name, admin_user_domain_id,
-                     domain_id, insecure=False):
+                     domain_id=None, insecure=False):
 
     auth = v3.Password(auth_url=auth_url, username=admin_username, user_id=admin_user_id, password=admin_password,
                        user_domain_name=admin_user_domain_name, user_domain_id=admin_user_domain_id,
                        domain_id=domain_id)
-    sess = session.Session(auth=auth, verify=(not insecure))
+    return session.Session(auth=auth, verify=(not insecure))
 
-    return client.Client(session=sess)
+
+def keystone_client(session, endpoint_override=None):
+    return client.Client(session=session, endpoint_override=endpoint_override)
+
+
+def keystone_scrape_projects(kclnt):
+    domains = {}
+    backend = keystone_get_backend_info(kclnt)
+    for domain in kclnt.domains.list():
+        if domain.enabled:
+            dom = {'id': domain.id, 'name': domain.name, 'backend': backend, 'projects': {}}
+
+            domains[domain.id] = dom
+
+            for project in kclnt.projects.list(domain=domain):
+                prj = {'id': project.id, 'name': project.name}
+                dom['projects'][project.id] = prj
+
+    return domains
+
+
+def keystone_get_backend_info(kclnt):
+    try:
+        svc = kclnt.services.list(type='identity')
+        svc = svc.pop()
+        parsed_uri = urlparse(svc.links['self'])
+        backend = parsed_uri.hostname
+        LOG.debug("Backend Service Self URL {0}".format(backend))
+
+        return backend
+    except Exception as err:
+        LOG.warning("Backend could not be determined: {0}".format(err.message))
+        return '_unknown'
