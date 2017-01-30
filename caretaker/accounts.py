@@ -235,6 +235,10 @@ def verify(contents, args):
                 valid += 1
                 LOG.debug("Account {0} is valid in {1}/{2}".format(
                     account['account'], domain_name, account['project_name']))
+            else:
+                # Reset domain name and backend
+                account['backend'] = STATUS_UNKNOWN
+                account['domain_name'] = STATUS_UNKNOWN
 
     LOG.info("Account verification: Valid {0}, Orphans {1}, Deleted {2}, Overall {3}".format(valid, orphan, deleted,
                                                                                              len(accounts)))
