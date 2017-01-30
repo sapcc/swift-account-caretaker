@@ -27,8 +27,8 @@ from keystoneclient import exceptions as ke
 LOG = logging.getLogger(__name__)
 ACCOUNT_FIELDS = ['account', 'domain_id', 'project_id', 'object_count', 'bytes_used', 'quota_bytes',
                   'status_deleted', 'created_at', 'delete_timestamp']
-ADD_ACCOUNT_FIELDS = ['backup', 'domain_name', 'project_name', 'status']
-ALL_ACCOUNT_FIELDS = ADD_ACCOUNT_FIELDS.append(ACCOUNT_FIELDS)
+ADD_ACCOUNT_FIELDS = ['backend', 'domain_name', 'project_name', 'status']
+ALL_ACCOUNT_FIELDS = ADD_ACCOUNT_FIELDS + ACCOUNT_FIELDS
 SEP = ';'
 STATUS_UNKNOWN = '_unknown'
 STATUS_VALID = 'VALID'
@@ -131,6 +131,7 @@ def verify(contents, args):
                 account[field] = STATUS_UNKNOWN
             accounts.append(account)
 
+    scraped_domains = {}
     if args.os_ks_scrape_auth_url:
         # Getting a whole project scrape
         sess = keystone_session(
