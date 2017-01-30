@@ -18,10 +18,11 @@ import logging
 import os
 import sqlite3
 
-from caretaker.common import keystone_session
+from caretaker.common import keystone_session, keystone_client, keystone_scrape_projects, keystone_get_backend_info
 from operator import itemgetter
 from swift.account.backend import AccountBroker, DATADIR
 from keystoneclient import exceptions as ke
+
 
 LOG = logging.getLogger(__name__)
 ACCOUNT_FIELDS = ['account', 'domain_id', 'domain_name', 'project_id', 'project_name', 'status',
@@ -126,9 +127,23 @@ def verify(contents, args):
             account = _construct(line)
             accounts.append(account)
 
+    if args.os_ks_scrape_auth_url:
+        # Getting a whole project scrape
+        sess = keystone_session(
+            auth_url=args.os_ks_scrape_auth_url,
+            admin_username=args.os_ks_scrape_admin_username,
+            admin_user_id=args.os_ks_scrape_admin_user_id,
+            admin_password=args.os_ks_scrape_admin_password,
+            admin_user_domain_name=args.os_ks_scrape_admin_user_domain_name,
+            admin_user_domain_id=args.os_ks_scrape_admin_user_domain_id,
+            insecure=args.os_ks_scrape_insecure)
+        kclnt = keystone_client(session=sess, endpoint_override=args.os_ks_scrape_auth_url)
+        scraped_domains = keystone_scrape_projects(kclnt)
+        LOG.info("{0} domains scraped".format(len(scraped_domains)))
+
     domain_id = None
     domain_name = STATUS_UNKNOWN
-    keystone = None
+    kclnt = None
     valid = 0
     orphan = 0
     deleted = 0
@@ -143,32 +158,51 @@ def verify(contents, args):
 
         if domain_id != account['domain_id']:
             domain_id = account['domain_id']
+
+            # Getting a domain scoped session
+            sess = keystone_session(
+                auth_url=args.os_auth_url,
+                admin_username=args.os_ks_admin_username,
+                admin_user_id=args.os_ks_admin_user_id,
+                admin_password=args.os_ks_admin_password,
+                admin_user_domain_name=args.os_ks_admin_user_domain_name,
+                admin_user_domain_id=args.os_ks_admin_user_domain_id,
+                insecure=args.os_ks_insecure,
+                domain_id=domain_id)
+            kclnt = keystone_client(session=sess)
+
             try:
-                keystone = keystone_session(
-                    auth_url=args.os_auth_url,
-                    admin_username=args.os_ks_admin_username,
-                    admin_user_id=args.os_ks_admin_user_id,
-                    admin_password=args.os_ks_admin_password,
-                    admin_user_domain_name=args.os_ks_admin_user_domain_name,
-                    admin_user_domain_id=args.os_ks_admin_user_domain_id,
-                    insecure=args.os_ks_insecure,
-                    domain_id=domain_id)
-                domain_name = keystone.domains.get(domain_id).name
+                domain_name = kclnt.domains.get(domain_id).name
+                backend = keystone_get_backend_info(kclnt)
+
             except ke.BadRequest as err:
                 # Invalid Domain, e.g. it was disabled
-                domain_name = STATUS_INVALID
-                keystone = None
-                LOG.debug("DomainID {0}: {1}".format(domain_id, err.message))
-
-            except Exception as err:
-                keystone = None
-                domain_name = STATUS_UNKNOWN
                 LOG.warning("DomainID {0}: {1}".format(domain_id, err.message))
+                domain_name = STATUS_INVALID
+                backend = STATUS_UNKNOWN
+                kclnt = None
+            except ke.Unauthorized as err:
+                if domain_id in scraped_domains:
+                    backend = scraped_domains[domain_id]['backend']
+                    domain_name = scraped_domains[domain_id]['name']
+                else:
+                    LOG.warning("DomainID {0}: {1}".format(domain_id, err.message))
+                    domain_name = STATUS_UNKNOWN
+                    backend = STATUS_UNKNOWN
+
+                kclnt = None
+            except Exception as err:
+                LOG.warning("DomainID {0}: {1}".format(domain_id, err.message))
+                domain_name = STATUS_UNKNOWN
+                backend = STATUS_UNKNOWN
+                kclnt = None
 
         account['domain_name'] = domain_name
-        if keystone:
+        account['backend'] = backend
+
+        if kclnt:
             try:
-                keystone_project = keystone.projects.get(account['project_id'])
+                keystone_project = kclnt.projects.get(account['project_id'])
                 if keystone_project:
                     # project exist
                     account['project_name'] = keystone_project.name
@@ -188,6 +222,14 @@ def verify(contents, args):
             # Project in invalid domain
             account['status'] = STATUS_INVALID
             orphan += 1
+        elif domain_name != STATUS_UNKNOWN:
+            if account['project_id'] in scraped_domains[domain_id]['projects']:
+                # Project in scraped domains
+                account['project_name'] = scraped_domains[domain_id]['projects'][account['project_id']]['name']
+                account['status'] = STATUS_VALID
+                valid += 1
+                LOG.debug("Account {0} is valid in {1}/{2}".format(
+                    account['account'], domain_name, account['project_name']))
 
     LOG.info("Account verification: Valid {0}, Orphans {1}, Deleted {2}, Overall {3}".format(valid, orphan, deleted,
                                                                                              len(accounts)))

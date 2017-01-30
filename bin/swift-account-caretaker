@@ -223,6 +223,35 @@ if __name__ == "__main__":
     parser_verify.add_argument('--os-ks-insecure', action="store_true",
                                default=environ.get('OS_KS_INSECURE'),
                                help='Defaults to env[OS_KS_INSECURE].')
+    parser_verify.add_argument('--os-ks-scrape-auth-url',
+                               default=environ.get('OS_KS_SCRAPE_AUTH_URL'),
+                               help='OpenStack user name. '
+                                    'Defaults to env[OS_KS_SCRAPE_AUTH_URL].')
+    parser_verify.add_argument('--os-ks-scrape-admin-username',
+                               default=environ.get('OS_KS_SCRAPE_ADMIN_USERNAME', environ.get('OS_KS_ADMIN_USERNAME')),
+                               help='OpenStack user name. '
+                                    'Defaults to env[OS_KS_ADMIN_USERNAME].')
+    parser_verify.add_argument('--os-ks-scrape-admin-user-id',
+                               default=environ.get('OS_KS_SCRAPE_ADMIN_USER_ID', environ.get('OS_KS_ADMIN_USER_ID')),
+                               help='OpenStack user ID. '
+                                    'Defaults to env[OS_KS_ADMIN_USER_ID].')
+    parser_verify.add_argument('--os-ks-scrape-admin-password',
+                               default=environ.get('OS_KS_SCRAPE_ADMIN_PASSWORD', environ.get('OS_KS_ADMIN_PASSWORD')),
+                               help='OpenStack user name. '
+                                    'Defaults to env[OS_KS_ADMIN_PASSWORD].')
+    parser_verify.add_argument('--os-ks-scrape-admin-user-domain-name',
+                               default=environ.get('OS_KS_SCRAPE_ADMIN_USER_DOMAIN_NAME',
+                                                   environ.get('OS_KS_ADMIN_USER_DOMAIN_NAME')),
+                               help='OpenStack domain name. '
+                                    'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_NAME].')
+    parser_verify.add_argument('--os-ks-scrape-admin-user-domain-id',
+                                default=environ.get('OS_KS_SCRAPE_ADMIN_USER_DOMAIN_ID',
+                                                    environ.get('OS_KS_ADMIN_USER_DOMAIN_ID')),
+                                help='OpenStack domain ID. '
+                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
+    parser_verify.add_argument('--os-ks-scrape-insecure', action="store_true",
+                                default=environ.get('OS_KS_SCRAPE_INSECURE', environ.get('OS_KS_INSECURE')),
+                                help='Defaults to env[OS_KS_INSECURE].')
 
     parser_mergify = subparsers.add_parser('mergify', help='Merge and verify account info')
     parser_mergify.set_defaults(func=mergify)
@@ -254,6 +283,33 @@ if __name__ == "__main__":
                                      'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
     parser_mergify.add_argument('--os-ks-insecure', action="store_true",
                                 default=environ.get('OS_KS_INSECURE'),
+                                help='Defaults to env[OS_KS_INSECURE].')
+    parser_mergify.add_argument('--os-ks-scrape-auth-url',
+                                default=environ.get('OS_KS_SCRAPE_AUTH_URL'),
+                                help='OpenStack user name. '
+                                     'Defaults to env[OS_KS_SCRAPE_AUTH_URL].')
+    parser_mergify.add_argument('--os-ks-scrape-admin-username',
+                                default=environ.get('OS_KS_SCRAPE_ADMIN_USERNAME', environ.get('OS_KS_ADMIN_USERNAME')),
+                                help='OpenStack user name. '
+                                     'Defaults to env[OS_KS_ADMIN_USERNAME].')
+    parser_mergify.add_argument('--os-ks-scrape-admin-user-id',
+                                default=environ.get('OS_KS_SCRAPE_ADMIN_USER_ID', environ.get('OS_KS_ADMIN_USER_ID')),
+                                help='OpenStack user ID. '
+                                     'Defaults to env[OS_KS_ADMIN_USER_ID].')
+    parser_mergify.add_argument('--os-ks-scrape-admin-password',
+                                default=environ.get('OS_KS_SCRAPE_ADMIN_PASSWORD', environ.get('OS_KS_ADMIN_PASSWORD')),
+                                help='OpenStack user name. '
+                                     'Defaults to env[OS_KS_ADMIN_PASSWORD].')
+    parser_mergify.add_argument('--os-ks-scrape-admin-user-domain-name',
+                                default=environ.get('OS_KS_SCRAPE_ADMIN_USER_DOMAIN_NAME', environ.get('OS_KS_ADMIN_USER_DOMAIN_NAME')),
+                                help='OpenStack domain name. '
+                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_NAME].')
+    parser_mergify.add_argument('--os-ks-scrape-admin-user-domain-id',
+                                default=environ.get('OS_KS_SCRAPE_ADMIN_USER_DOMAIN_ID', environ.get('OS_KS_ADMIN_USER_DOMAIN_ID')),
+                                help='OpenStack domain ID. '
+                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
+    parser_mergify.add_argument('--os-ks-scrape-insecure', action="store_true",
+                                default=environ.get('OS_KS_SCRAPE_INSECURE', environ.get('OS_KS_INSECURE')),
                                 help='Defaults to env[OS_KS_INSECURE].')
 
     args = parser.parse_args(sys.argv[1:])
