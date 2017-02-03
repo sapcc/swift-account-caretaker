@@ -41,7 +41,7 @@ def format(accounts, all_fields=False, delimiter=SEP, with_header=False):
     result = ''
     fields = ACCOUNT_FIELDS
     if all_fields:
-        fields= ALL_ACCOUNT_FIELDS
+        fields = ALL_ACCOUNT_FIELDS
 
     if with_header:
         result = delimiter.join(fields) + "\n"
@@ -148,6 +148,7 @@ def verify(contents, args):
 
     domain_id = None
     domain_name = STATUS_UNKNOWN
+    backend = STATUS_UNKNOWN
     kclnt = None
     valid = 0
     orphan = 0
@@ -180,24 +181,22 @@ def verify(contents, args):
                 domain_name = kclnt.domains.get(domain_id).name
                 backend = keystone_get_backend_info(kclnt)
 
-            except ke.BadRequest as err:
-                # Invalid Domain, e.g. it was disabled
-                LOG.warning("DomainID {0}: {1}".format(domain_id, err.message))
-                domain_name = STATUS_INVALID
-                backend = STATUS_UNKNOWN
-                kclnt = None
-            except ke.Unauthorized as err:
+            except (ke.BadRequest, ke.Unauthorized) as err:
                 if domain_id in scraped_domains:
                     backend = scraped_domains[domain_id]['backend']
                     domain_name = scraped_domains[domain_id]['name']
                 else:
                     LOG.warning("DomainID {0}: {1}".format(domain_id, err.message))
-                    domain_name = STATUS_UNKNOWN
                     backend = STATUS_UNKNOWN
+                    if err.http_status == 400 or err.message == 'Domain is disabled':
+                        domain_name = STATUS_INVALID
+                    else:
+                        domain_name = STATUS_UNKNOWN
 
                 kclnt = None
+
             except Exception as err:
-                LOG.warning("DomainID {0}: {1}".format(domain_id, err.message))
+                LOG.error("DomainID {0}: {1}".format(domain_id, err.message))
                 domain_name = STATUS_UNKNOWN
                 backend = STATUS_UNKNOWN
                 kclnt = None
