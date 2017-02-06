@@ -93,7 +93,7 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
                 account['domain_id'] = str(meta['X-Account-Sysmeta-Project-Domain-Id'].pop(0))
             else:
                 account['domain_id'] = STATUS_UNKNOWN
-            if 'X-Account-Meta-Quota-Bytes' in meta:
+            if 'X-Account-Meta-Quota-Bytes' in meta and meta['X-Account-Meta-Quota-Bytes'][0] != '':
                 account['quota_bytes'] = int(meta['X-Account-Meta-Quota-Bytes'][0])
             else:
                 account['quota_bytes'] = 0
