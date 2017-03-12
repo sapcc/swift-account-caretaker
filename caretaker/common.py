@@ -13,9 +13,11 @@
 # limitations under the License.
 
 import logging
+import random
 
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
+from keystoneclient import exceptions as ke
 from keystoneclient.v3 import client
 from swiftclient.client import Connection
 from urlparse import urlparse
@@ -24,17 +26,16 @@ from urlparse import urlparse
 LOG = logging.getLogger(__name__)
 
 
-def swift_connection(args):
-    authurl = args.os_auth_url
-    username = args.os_username
-    password = args.os_password
-    auth_version = args.os_auth_version
-    cacert = args.os_cacert
-    insecure = args.insecure
+def swift_connection(os_config):
+    authurl = os_config.get('os_auth_url')
+    username = os_config.get('os_username')
+    password = os_config.get('os_password')
+    auth_version = os_config.get('os_auth_version')
+    cacert = os_config.get('os_cacert')
+    insecure = os_config.get('insecure')
 
     os_options = {}
-    args_dict = vars(args)
-    for key, value in args_dict.iteritems():
+    for key, value in os_config.iteritems():
         if key.startswith('os_'):
             key = key.lstrip('os_')
             os_options[key] = value
@@ -86,22 +87,6 @@ def keystone_client(session, endpoint_override=None):
     return client.Client(session=session, endpoint_override=endpoint_override)
 
 
-def keystone_scrape_projects(kclnt):
-    domains = {}
-    backend = keystone_get_backend_info(kclnt)
-    for domain in kclnt.domains.list():
-        if domain.enabled:
-            dom = {'id': domain.id, 'name': domain.name, 'backend': backend, 'projects': {}}
-
-            domains[domain.id] = dom
-
-            for project in kclnt.projects.list(domain=domain):
-                prj = {'id': project.id, 'name': project.name}
-                dom['projects'][project.id] = prj
-
-    return domains
-
-
 def keystone_get_backend_info(kclnt):
     try:
         svc = kclnt.services.list(type='identity')
@@ -114,3 +99,42 @@ def keystone_get_backend_info(kclnt):
     except Exception as err:
         LOG.warning("Backend could not be determined: {0}".format(err.message))
         return '_unknown'
+
+
+class DomainWrapper:
+    def __init__(self, domain_id):
+        if domain_id == 'default':
+            # Don't rely on default domain ID from scraper, that can be in every keystone backend present
+            domain_id = domain_id + '_' + str(random.randint(0, 1000))
+
+        self.id = domain_id
+        self.name = None
+        self.enabled = False
+        self.projects = {}
+        self.keystone_client = None
+
+    def add_project(self, project):
+        self.projects[project.id] = project
+
+    def get_project(self, project_id):
+        if project_id in self.projects:
+            return self.projects[project_id]
+        elif self.keystone_client:
+            try:
+                project = self.keystone_client.projects.get(project_id)
+                prj = ProjectWrapper(project.id)
+                prj.name = project.name
+                prj.enabled = project.enabled
+                self.add_project(project)
+                return prj
+            except ke.NotFound as err:
+                LOG.debug("DomainID {0}/ProjectID {1}: {2}".format(self.id, project_id, err.message))
+            except Exception as err:
+                LOG.warning("DomainID {0}/ProjectID {1}: {2}".format(self.id, project_id, err.message))
+
+
+class ProjectWrapper:
+    def __init__(self, project_id):
+        self.id = project_id
+        self.name = None
+        self.enabled = False
