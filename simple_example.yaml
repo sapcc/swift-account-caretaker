@@ -1,0 +1,7 @@
+common:
+  os_auth_url: https://<KEYSTONE>:5000/v3
+  os_user_domain_name: <USERDOMAIN_FOR_CARETAKER>
+  os_username: <USER_FOR_CARETAKER>
+  os_password: <PASSWORD>
+  os_project_domain_name: <PROJECTDOMAIN_FOR_CARETAKER>
+  os_project_name: <PROJECT_FOR_CARETAKER>

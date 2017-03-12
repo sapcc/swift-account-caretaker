@@ -19,12 +19,38 @@ import caretaker.accounts as acc
 import datetime
 import socket
 import sys
+import yaml
 from os import environ
 
 from caretaker.common import *
 
 
-def collect(arguments):
+def _build_os_config(arguments):
+    os_config = {'common': {}, 'verify': [], 'scrape': []}
+
+    if arguments.config_file:
+        with open(arguments.config_file, 'r') as stream:
+            try:
+                conf = yaml.load(stream)
+                if 'common' in conf:
+                    os_config['common'] = conf['common']
+                else:
+                    sys.exit("common missing in {0}".format(arguments.config_file))
+                if 'verify' in conf:
+                    for verify in conf['verify']:
+                        if 'scrape' in verify:
+                            os_config['scrape'].append(verify)
+                        else:
+                            os_config['verify'].append(verify)
+                else:
+                    os_config['verify'].append(os_config['common'])
+            except yaml.YAMLError as exc:
+                sys.exit(exc.message)
+
+    return os_config
+
+
+def collect(arguments, os_config):
     accounts = acc.collect(arguments.device_dir)
     if arguments.verbose > 0:
         print acc.format(accounts, delimiter="\t", with_header=True)
@@ -32,12 +58,12 @@ def collect(arguments):
     if not arguments.no_upload:
         obj_name = 'collect/' + socket.getfqdn() + '_accounts.csv'
         contents = acc.format(accounts)
-        swift_upload(swift_connection(arguments), args.container, obj_name, contents)
+        swift_upload(swift_connection(os_config['common']), arguments.container, obj_name, contents)
 
 
-def merge(arguments):
-    connection = swift_connection(arguments)
-    contents = swift_download_all(connection, args.container, prefix='collect/')
+def merge(arguments, os_config):
+    connection = swift_connection(os_config['common'])
+    contents = swift_download_all(connection, arguments.container, prefix='collect/')
     accounts = acc.merge(contents)
     if arguments.verbose > 0:
         print acc.format(accounts, delimiter="\t", with_header=True)
@@ -47,10 +73,10 @@ def merge(arguments):
         swift_upload(connection, 'caretaker', 'merge/accounts.csv', contents)
 
 
-def verify(arguments):
-    connection = swift_connection(arguments)
-    contents = swift_download(connection, args.container, object_name='merge/accounts.csv')
-    accounts = acc.verify(contents, args)
+def verify(arguments, os_config):
+    connection = swift_connection(os_config['common'])
+    contents = swift_download(connection, arguments.container, object_name='merge/accounts.csv')
+    accounts = acc.verify(contents, os_config)
     if arguments.verbose > 0:
         print acc.format(accounts, all_fields=True, delimiter="\t", with_header=True)
 
@@ -76,15 +102,16 @@ def verify(arguments):
         swift_upload(connection, 'caretaker', 'accounts_valid.csv', contents)
 
 
-def mergify(arguments):
-    merge(arguments)
-    verify(arguments)
+def mergify(arguments, os_config):
+    merge(arguments, os_config)
+    verify(arguments, os_config)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='sub-command help')
 
+    parser.add_argument('-c', '--config-file', required=True, help='Config File')
     parser.add_argument('-v', '--verbose', action="count", default=0,
                         help='Increase verbosity')
     parser.add_argument('-n', '--no-upload', action="store_true",
@@ -92,88 +119,6 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--log-level',
                         default=environ.get('LOG_LEVEL', 'warn'),
                         help='Loglevel')
-    parser.add_argument('--os-username',
-                        default=environ.get('OS_USERNAME'),
-                        help='OpenStack username. Defaults to '
-                             'env[OS_USERNAME].')
-    parser.add_argument('--os-user-id',
-                        default=environ.get('OS_USER_ID'),
-                        help='OpenStack user ID. '
-                             'Defaults to env[OS_USER_ID].')
-    parser.add_argument('--os-user-domain-id',
-                        default=environ.get('OS_USER_DOMAIN_ID'),
-                        help='OpenStack user domain ID. '
-                             'Defaults to env[OS_USER_DOMAIN_ID].')
-    parser.add_argument('--os-user-domain-name',
-                        default=environ.get('OS_USER_DOMAIN_NAME'),
-                        help='OpenStack user domain name. '
-                             'Defaults to env[OS_USER_DOMAIN_NAME].')
-    parser.add_argument('--os-password',
-                        default=environ.get('OS_PASSWORD'),
-                        help='OpenStack password. Defaults to '
-                             'env[OS_PASSWORD].')
-    parser.add_argument('--os-tenant-id',
-                        default=environ.get('OS_TENANT_ID'),
-                        help='OpenStack tenant ID. '
-                             'Defaults to env[OS_TENANT_ID].')
-    parser.add_argument('--os-tenant-name',
-                        default=environ.get('OS_TENANT_NAME'),
-                        help='OpenStack tenant name. '
-                             'Defaults to env[OS_TENANT_NAME].')
-    parser.add_argument('--os-project-id',
-                        default=environ.get('OS_PROJECT_ID'),
-                        help='OpenStack project ID. '
-                             'Defaults to env[OS_PROJECT_ID].')
-    parser.add_argument('--os-project-name',
-                        default=environ.get('OS_PROJECT_NAME'),
-                        help='OpenStack project name. '
-                             'Defaults to env[OS_PROJECT_NAME].')
-    parser.add_argument('--os-project-domain-id',
-                        default=environ.get('OS_PROJECT_DOMAIN_ID'),
-                        help='OpenStack project domain ID. '
-                             'Defaults to env[OS_PROJECT_DOMAIN_ID].')
-    parser.add_argument('--os-project-domain-name',
-                        default=environ.get('OS_PROJECT_DOMAIN_NAME'),
-                        help='OpenStack project domain name. '
-                             'Defaults to env[OS_PROJECT_DOMAIN_NAME].')
-    parser.add_argument('--os-auth-version',
-                        default=environ.get('OS_AUTH_VERSION', '3'),
-                        help='OpenStack region name. '
-                             'Defaults to env[OS_AUTH_VERSION].')
-    parser.add_argument('--os-auth-url',
-                        default=environ.get('OS_AUTH_URL'),
-                        help='OpenStack auth URL. Defaults to '
-                             'env[OS_AUTH_URL].')
-    parser.add_argument('--os-auth-token',
-                        default=environ.get('OS_AUTH_TOKEN'),
-                        help='OpenStack token. Defaults to '
-                             'env[OS_AUTH_TOKEN]. Used with --os-storage-url '
-                             'to bypass the usual username/password '
-                             'authentication.')
-    parser.add_argument('--os-storage-url',
-                        default=environ.get('OS_STORAGE_URL'),
-                        help='OpenStack storage URL. '
-                             'Defaults to env[OS_STORAGE_URL]. '
-                             'Overrides the storage url returned during auth. '
-                             'Will bypass authentication when used with '
-                             '--os-auth-token.')
-    parser.add_argument('--os-region-name',
-                        default=environ.get('OS_REGION_NAME'),
-                        help='OpenStack region name. '
-                             'Defaults to env[OS_REGION_NAME].')
-    parser.add_argument('--os-cacert',
-                        default=environ.get('OS_CACERT'),
-                        help='Specify a CA bundle file to use in verifying a '
-                             'TLS (https) server certificate. '
-                             'Defaults to env[OS_CACERT].')
-    parser.add_argument('--insecure',
-                        default=environ.get('SWIFTCLIENT_INSECURE'),
-                        action="store_true",
-                        help='Allow swiftclient to access servers without '
-                             'having to verify the SSL certificate. '
-                             'Defaults to env[SWIFTCLIENT_INSECURE] '
-                             '(set to \'true\' to enable).')
-
     parser_collect = subparsers.add_parser('collect', help='collect account info')
     parser_collect.set_defaults(func=collect)
     parser_collect.add_argument('--device-dir',
@@ -200,58 +145,6 @@ if __name__ == "__main__":
                                     'Defaults to caretaker.')
     parser_verify.add_argument('--history', default=0, type=int,
                                help='Keep a copy of the accounts file for n days.')
-    parser_verify.add_argument('--os-ks-admin-username',
-                               default=environ.get('OS_KS_ADMIN_USERNAME'),
-                               help='OpenStack user name. '
-                                    'Defaults to env[OS_KS_ADMIN_USERNAME].')
-    parser_verify.add_argument('--os-ks-admin-user-id',
-                               default=environ.get('OS_KS_ADMIN_USER_ID'),
-                               help='OpenStack user ID. '
-                                    'Defaults to env[OS_KS_ADMIN_USER_ID].')
-    parser_verify.add_argument('--os-ks-admin-password',
-                               default=environ.get('OS_KS_ADMIN_PASSWORD'),
-                               help='OpenStack user name. '
-                                    'Defaults to env[OS_KS_ADMIN_PASSWORD].')
-    parser_verify.add_argument('--os-ks-admin-user-domain-name',
-                               default=environ.get('OS_KS_ADMIN_USER_DOMAIN_NAME'),
-                               help='OpenStack domain name. '
-                                    'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_NAME].')
-    parser_verify.add_argument('--os-ks-admin-user-domain-id',
-                               default=environ.get('OS_KS_ADMIN_USER_DOMAIN_ID'),
-                               help='OpenStack domain ID. '
-                                    'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
-    parser_verify.add_argument('--os-ks-insecure', action="store_true",
-                               default=environ.get('OS_KS_INSECURE'),
-                               help='Defaults to env[OS_KS_INSECURE].')
-    parser_verify.add_argument('--os-ks-scrape-auth-url',
-                               default=environ.get('OS_KS_SCRAPE_AUTH_URL'),
-                               help='OpenStack user name. '
-                                    'Defaults to env[OS_KS_SCRAPE_AUTH_URL].')
-    parser_verify.add_argument('--os-ks-scrape-admin-username',
-                               default=environ.get('OS_KS_SCRAPE_ADMIN_USERNAME', environ.get('OS_KS_ADMIN_USERNAME')),
-                               help='OpenStack user name. '
-                                    'Defaults to env[OS_KS_ADMIN_USERNAME].')
-    parser_verify.add_argument('--os-ks-scrape-admin-user-id',
-                               default=environ.get('OS_KS_SCRAPE_ADMIN_USER_ID', environ.get('OS_KS_ADMIN_USER_ID')),
-                               help='OpenStack user ID. '
-                                    'Defaults to env[OS_KS_ADMIN_USER_ID].')
-    parser_verify.add_argument('--os-ks-scrape-admin-password',
-                               default=environ.get('OS_KS_SCRAPE_ADMIN_PASSWORD', environ.get('OS_KS_ADMIN_PASSWORD')),
-                               help='OpenStack user name. '
-                                    'Defaults to env[OS_KS_ADMIN_PASSWORD].')
-    parser_verify.add_argument('--os-ks-scrape-admin-user-domain-name',
-                               default=environ.get('OS_KS_SCRAPE_ADMIN_USER_DOMAIN_NAME',
-                                                   environ.get('OS_KS_ADMIN_USER_DOMAIN_NAME')),
-                               help='OpenStack domain name. '
-                                    'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_NAME].')
-    parser_verify.add_argument('--os-ks-scrape-admin-user-domain-id',
-                               default=environ.get('OS_KS_SCRAPE_ADMIN_USER_DOMAIN_ID',
-                                                   environ.get('OS_KS_ADMIN_USER_DOMAIN_ID')),
-                               help='OpenStack domain ID. '
-                                    'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
-    parser_verify.add_argument('--os-ks-scrape-insecure', action="store_true",
-                               default=environ.get('OS_KS_SCRAPE_INSECURE', environ.get('OS_KS_INSECURE')),
-                               help='Defaults to env[OS_KS_INSECURE].')
 
     parser_mergify = subparsers.add_parser('mergify', help='Merge and verify account info')
     parser_mergify.set_defaults(func=mergify)
@@ -261,60 +154,10 @@ if __name__ == "__main__":
                                      'Defaults to caretaker.')
     parser_mergify.add_argument('--history', default=0, type=int,
                                 help='Keep a copy of the accounts file for n days.')
-    parser_mergify.add_argument('--os-ks-admin-username',
-                                default=environ.get('OS_KS_ADMIN_USERNAME'),
-                                help='OpenStack user name. '
-                                     'Defaults to env[OS_KS_ADMIN_USERNAME].')
-    parser_mergify.add_argument('--os-ks-admin-user-id',
-                                default=environ.get('OS_KS_ADMIN_USER_ID'),
-                                help='OpenStack user ID. '
-                                     'Defaults to env[OS_KS_ADMIN_USER_ID].')
-    parser_mergify.add_argument('--os-ks-admin-password',
-                                default=environ.get('OS_KS_ADMIN_PASSWORD'),
-                                help='OpenStack user name. '
-                                     'Defaults to env[OS_KS_ADMIN_PASSWORD].')
-    parser_mergify.add_argument('--os-ks-admin-user-domain-name',
-                                default=environ.get('OS_KS_ADMIN_USER_DOMAIN_NAME'),
-                                help='OpenStack domain name. '
-                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_NAME].')
-    parser_mergify.add_argument('--os-ks-admin-user-domain-id',
-                                default=environ.get('OS_KS_ADMIN_USER_DOMAIN_ID'),
-                                help='OpenStack domain ID. '
-                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
-    parser_mergify.add_argument('--os-ks-insecure', action="store_true",
-                                default=environ.get('OS_KS_INSECURE'),
-                                help='Defaults to env[OS_KS_INSECURE].')
-    parser_mergify.add_argument('--os-ks-scrape-auth-url',
-                                default=environ.get('OS_KS_SCRAPE_AUTH_URL'),
-                                help='OpenStack user name. '
-                                     'Defaults to env[OS_KS_SCRAPE_AUTH_URL].')
-    parser_mergify.add_argument('--os-ks-scrape-admin-username',
-                                default=environ.get('OS_KS_SCRAPE_ADMIN_USERNAME', environ.get('OS_KS_ADMIN_USERNAME')),
-                                help='OpenStack user name. '
-                                     'Defaults to env[OS_KS_ADMIN_USERNAME].')
-    parser_mergify.add_argument('--os-ks-scrape-admin-user-id',
-                                default=environ.get('OS_KS_SCRAPE_ADMIN_USER_ID', environ.get('OS_KS_ADMIN_USER_ID')),
-                                help='OpenStack user ID. '
-                                     'Defaults to env[OS_KS_ADMIN_USER_ID].')
-    parser_mergify.add_argument('--os-ks-scrape-admin-password',
-                                default=environ.get('OS_KS_SCRAPE_ADMIN_PASSWORD', environ.get('OS_KS_ADMIN_PASSWORD')),
-                                help='OpenStack user name. '
-                                     'Defaults to env[OS_KS_ADMIN_PASSWORD].')
-    parser_mergify.add_argument('--os-ks-scrape-admin-user-domain-name',
-                                default=environ.get('OS_KS_SCRAPE_ADMIN_USER_DOMAIN_NAME',
-                                                    environ.get('OS_KS_ADMIN_USER_DOMAIN_NAME')),
-                                help='OpenStack domain name. '
-                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_NAME].')
-    parser_mergify.add_argument('--os-ks-scrape-admin-user-domain-id',
-                                default=environ.get('OS_KS_SCRAPE_ADMIN_USER_DOMAIN_ID',
-                                                    environ.get('OS_KS_ADMIN_USER_DOMAIN_ID')),
-                                help='OpenStack domain ID. '
-                                     'Defaults to env[OS_KS_ADMIN_USER_DOMAIN_ID].')
-    parser_mergify.add_argument('--os-ks-scrape-insecure', action="store_true",
-                                default=environ.get('OS_KS_SCRAPE_INSECURE', environ.get('OS_KS_INSECURE')),
-                                help='Defaults to env[OS_KS_INSECURE].')
 
-    args = parser.parse_args(sys.argv[1:])
-    logging.basicConfig(level=args.log_level.upper())
+    _args = parser.parse_args(sys.argv[1:])
+    logging.basicConfig(level=_args.log_level.upper())
 
-    args.func(args)
+    _os_config = _build_os_config(_args)
+
+    _args.func(_args, _os_config)
