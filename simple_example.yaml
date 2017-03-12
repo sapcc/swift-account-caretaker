@@ -5,21 +5,3 @@ common:
   os_password: <PASSWORD>
   os_project_domain_name: <PROJECTDOMAIN_FOR_CARETAKER>
   os_project_name: <PROJECT_FOR_CARETAKER>
-
-verify:
-  - cluster_name: cluster-1
-    os_auth_url: https://<KEYSTONE>:5000/v3
-    os_user_domain_name: <USERDOMAIN_FOR_KEYSTONE_ADMIN>
-    os_username: <USER_FOR_KEYSTONE_ADMIN>
-    os_password: <PASSWORD>
-    os_project_domain_name: <PROJECTDOMAIN_FOR_KEYSTONE_ADMIN>
-    os_project_name: <PROJECT_FOR_KEYSTONE_ADMIN>
-
-  - cluster_name: cluster-2
-    scrape: true
-    os_auth_url: https://<KEYSTONE-2>:5000/v3
-    os_user_domain_name: <USERDOMAIN_FOR_KEYSTONE_ADMIN>
-    os_username: <USER_FOR_KEYSTONE_ADMIN>
-    os_password: <PASSWORD>
-    os_project_domain_name: <PROJECTDOMAIN_FOR_KEYSTONE_ADMIN>
-    os_project_name: <PROJECT_FOR_KEYSTONE_ADMIN>
