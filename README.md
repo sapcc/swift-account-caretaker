@@ -60,7 +60,7 @@ swift-account-caretaker --config-file path/to/config.yaml collect
 `swift-account-caretaker` is able to handle multiple keystone backends. This is helpful, if your swift cluster is
 setup to server multiple keystone clusters (e.g. if you deploy multiple swift-proxies, connected to different keystones.
 Caretaker expects in general, that the configured user can get a domain scoped token to verify the project. It can also
-be configured with a keystone admin wide access. In that case `scarep: true ` must be set and all domains and projects
+be configured with a keystone admin wide access. In that case `scraped: true ` must be set and all domains and projects
 of a keystone project will be scraped.
 
 Examples config:
