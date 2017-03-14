@@ -42,7 +42,7 @@ def _build_os_config(arguments):
                     for verify in conf['verify']:
                         if not 'os_auth_version' in verify:
                             verify['os_auth_version'] = '3'
-                        if 'scrape' in verify:
+                        if 'scrape' in verify and verify['scrape']:
                             os_config['scrape'].append(verify)
                         else:
                             os_config['verify'].append(verify)
