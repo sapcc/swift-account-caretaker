@@ -216,23 +216,26 @@ class _DomainHelper:
                 backend = keystone_get_backend_info(kclnt)
 
                 count = 0
-                for domain in kclnt.domains.list():
-                    count += 1
-                    dom = DomainWrapper(domain.id)
+                try:
+                    for domain in kclnt.domains.list():
+                        count += 1
+                        dom = DomainWrapper(domain.id)
 
-                    dom.name = domain.name
-                    dom.backend = backend
-                    dom.enabled = domain.enabled
+                        dom.name = domain.name
+                        dom.backend = backend
+                        dom.enabled = domain.enabled
 
-                    for project in kclnt.projects.list(domain=domain):
-                        prj = ProjectWrapper(project.id)
-                        prj.name = project.name
-                        prj.enabled = project.enabled
-                        dom.add_project(prj)
+                        for project in kclnt.projects.list(domain=domain):
+                            prj = ProjectWrapper(project.id)
+                            prj.name = project.name
+                            prj.enabled = project.enabled
+                            dom.add_project(prj)
 
-                    self.domains[dom.id] = dom
+                        self.domains[dom.id] = dom
 
-                LOG.info("{0}: {1} domains scraped".format(scraper['cluster_name'], count))
+                    LOG.info("{0}: {1} domains scraped".format(scraper['cluster_name'], count))
+                except (ke.BadRequest, ke.Unauthorized, ke.Forbidden, ke.NotFound) as err:
+                    LOG.warn("{0}: scraping failed: {1}".format(scraper['cluster_name'], err.message))
 
     def get_domain(self, domain_id):
         if domain_id in self.domains:
