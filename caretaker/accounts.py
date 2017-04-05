@@ -212,7 +212,7 @@ class _DomainHelper:
                     admin_user_domain_id=scraper.get('os_user_domain_id'),
                     insecure=scraper.get('insecure'))
 
-                kclnt = keystone_client(session=sess, endpoint_override=scraper.get('os_auth_url'))
+                kclnt = keystone_client(session=sess, interface=scraper.get('os_interface'))
                 backend = keystone_get_backend_info(kclnt)
 
                 count = 0
@@ -252,7 +252,7 @@ class _DomainHelper:
                     admin_user_domain_id=verifier.get('os_user_domain_id'),
                     insecure=verifier.get('insecure'),
                     domain_id=domain_id)
-                kclnt = keystone_client(session=sess)
+                kclnt = keystone_client(session=sess, interface=verifier.get('os_interface'))
 
                 try:
                     domain = kclnt.domains.get(domain_id)
