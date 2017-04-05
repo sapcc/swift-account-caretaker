@@ -23,3 +23,4 @@ verify:
     os_password: <PASSWORD>
     os_project_domain_name: <PROJECTDOMAIN_FOR_KEYSTONE_ADMIN>
     os_project_name: <PROJECT_FOR_KEYSTONE_ADMIN>
+    os_interface: public

@@ -83,8 +83,8 @@ def keystone_session(auth_url, admin_username, admin_user_id, admin_password,
     return session.Session(auth=auth, verify=(not insecure))
 
 
-def keystone_client(session, endpoint_override=None):
-    return client.Client(session=session, endpoint_override=endpoint_override)
+def keystone_client(session, interface=None):
+    return client.Client(session=session, interface=interface)
 
 
 def keystone_get_backend_info(kclnt):
