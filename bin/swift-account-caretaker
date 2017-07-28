@@ -34,13 +34,13 @@ def _build_os_config(arguments):
                 conf = yaml.load(stream)
                 if 'common' in conf:
                     os_config['common'] = conf['common']
-                    if not 'os_auth_version' in os_config['common']:
+                    if 'os_auth_version' not in os_config['common']:
                         os_config['common']['os_auth_version'] = '3'
                 else:
                     sys.exit("common missing in {0}".format(arguments.config_file))
                 if 'verify' in conf:
                     for verify in conf['verify']:
-                        if not 'os_auth_version' in verify:
+                        if 'os_auth_version' not in verify:
                             verify['os_auth_version'] = '3'
                         if 'scrape' in verify and verify['scrape']:
                             os_config['scrape'].append(verify)
