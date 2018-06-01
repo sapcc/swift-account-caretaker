@@ -77,10 +77,6 @@ def collect(device_dir='/srv/node', stale_reads_ok=False,
             info = broker.get_info()
             meta = broker.metadata
 
-            # This account is used by the object expirer
-            if info['account'] == '.expiring_objects':
-                continue
-
             account = {'account': info['account'],
                        'domain_name': STATUS_UNKNOWN,
                        'project_id': info['account'].lstrip(reseller_prefix),
@@ -115,6 +111,11 @@ def merge(contents):
         if line:
             i += 1
             account = _construct(line)
+
+            # This account is used by the object expirer
+            if account['account'] == '.expiring_objects':
+                continue
+
             # Only collect the IDs to skip duplicates
             accounts[account['account']] = account
 
