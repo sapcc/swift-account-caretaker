@@ -1,8 +1,32 @@
 # swift-account-caretaker
+Swift account maintenance workflows like collecting stats or setting account ratelimits.
+
+# Binaries
+
+## swift-account-caretaker
 Collecting and merging swift account stats on swift account servers for the purpose of cleaning up orphaned accounts
 without a corresponding keystone project.
 
-# How it works
+## swift-account-ratelimit
+Quickly blacklist or whitelist an account with the internal client
+(https://docs.openstack.org/swift/latest/ratelimit.html#black-white-listing).
+
+```
+# Get Account ratelimit setting
+swift-account-ratelimit --account AUTH_123
+
+# Blacklist Account
+swift-account-ratelimit --account AUTH_123 --blacklist
+
+# Whitelist Account
+swift-account-ratelimit --account AUTH_123 --whitelist
+
+# remove Account ratelimit setting
+swift-account-ratelimit --account AUTH_123 --remove
+
+```
+
+# Caretaker - How it works
 
 ## Phase 1 - Collect
 In order to get a list of all known swift accounts, one need to ask swift itself to collect this list. Doing a project
