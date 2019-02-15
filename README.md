@@ -15,6 +15,9 @@ Quickly blacklist or whitelist an account with the internal client
 # Get Account ratelimit setting
 swift-account-ratelimit --account AUTH_123
 
+# Set Account ratelimit
+swift-account-ratelimit --account AUTH_123 --limit 25
+
 # Blacklist Account
 swift-account-ratelimit --account AUTH_123 --blacklist
 

@@ -46,19 +46,22 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--remove', action="store_true", help='Remove ratelimit for account')
     parser.add_argument('-b', '--blacklist', action="store_true", help='BLACKLIST account')
     parser.add_argument('-w', '--whitelist', action="store_true", help='WHITELIST account')
+    parser.add_argument('-l', '--limit', type=int, help='Set global rate limit for account')
 
     args = parser.parse_args(sys.argv[1:])
 
-    client = InternalClient(args.config, "ratelimit/v0.0.1", 3)
+    client = InternalClient(args.config, "ratelimit/v0.0.2", 3)
 
     check_header(client, args.account, args.details)
 
-    if args.remove or args.blacklist or args.whitelist:
+    if args.remove or args.blacklist or args.whitelist or args.limit:
         ratelimit = ''
         if args.blacklist:
             ratelimit = "BLACKLIST"
         elif args.whitelist:
             ratelimit = "WHITELIST"
+        elif args.limit:
+            ratelimit = args.limit
 
         print("Setting header to '%s'" % ratelimit)
         client.set_account_metadata(args.account, {RATELIMIT_HEADER: ratelimit})
