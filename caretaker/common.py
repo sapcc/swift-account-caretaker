@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import logging
 import random
 
@@ -20,7 +24,7 @@ from keystoneauth1 import session
 from keystoneclient import exceptions as ke
 from keystoneclient.v3 import client
 from swiftclient.client import Connection
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 
 LOG = logging.getLogger(__name__)
@@ -35,7 +39,7 @@ def swift_connection(os_config):
     insecure = os_config.get('insecure')
 
     os_options = {}
-    for key, value in os_config.iteritems():
+    for key, value in list(os_config.items()):
         if key.startswith('os_'):
             key = key.lstrip('os_')
             os_options[key] = value
@@ -101,7 +105,7 @@ def keystone_get_backend_info(kclnt):
         return '_unknown'
 
 
-class DomainWrapper:
+class DomainWrapper(object):
     def __init__(self, domain_id):
         if domain_id == 'default':
             # Don't rely on default domain ID from scraper, that can be in every keystone backend present
@@ -133,7 +137,7 @@ class DomainWrapper:
                 LOG.warning("DomainID {0}/ProjectID {1}: {2}".format(self.id, project_id, err.message))
 
 
-class ProjectWrapper:
+class ProjectWrapper(object):
     def __init__(self, project_id):
         self.id = project_id
         self.name = None
