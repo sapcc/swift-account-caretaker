@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from builtins import str
+from builtins import object
 import fnmatch
 import glob
 import logging
@@ -120,7 +122,7 @@ def merge(contents):
             accounts[account['account']] = account
 
     LOG.info("{0} accounts merged into {1} unique".format(i, len(accounts)))
-    return sorted(accounts.values(), key=itemgetter('domain_id', 'project_id'))
+    return sorted(list(accounts.values()), key=itemgetter('domain_id', 'project_id'))
 
 
 def verify(contents, os_config):
@@ -192,7 +194,7 @@ def _construct(content):
     return account
 
 
-class _DomainHelper:
+class _DomainHelper(object):
     os_config = None
     domains = {}
 
@@ -272,6 +274,6 @@ class _DomainHelper:
                                                                           err.message))
 
     def get_default_domain(self, project_id):
-        for dom in [v for k, v in self.domains.iteritems() if k.startswith('default_')]:
+        for dom in [v for k, v in list(self.domains.items()) if k.startswith('default_')]:
             if dom.get_project(project_id):
                 return dom
