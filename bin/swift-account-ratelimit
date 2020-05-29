@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import argparse
 from swift.common.internal_client import InternalClient
 import sys
@@ -26,7 +27,7 @@ def check_header(clnt, account, details=False):
     meta = clnt.get_account_metadata(account)
 
     if details:
-        for key, value in meta.iteritems():
+        for key, value in meta.items():
             print("\t%s: %s" % (key, value))
         print("")
 

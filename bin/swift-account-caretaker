@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import argparse
 import caretaker.accounts as acc
 import datetime
@@ -57,7 +58,7 @@ def _build_os_config(arguments):
 def collect(arguments, os_config):
     accounts = acc.collect(arguments.device_dir)
     if arguments.verbose > 0:
-        print acc.format(accounts, delimiter="\t", with_header=True)
+        print(acc.format(accounts, delimiter="\t", with_header=True))
 
     if not arguments.no_upload:
         obj_name = 'collect/' + socket.getfqdn() + '_accounts.csv'
@@ -70,7 +71,7 @@ def merge(arguments, os_config):
     contents = swift_download_all(connection, arguments.container, prefix='collect/')
     accounts = acc.merge(contents)
     if arguments.verbose > 0:
-        print acc.format(accounts, delimiter="\t", with_header=True)
+        print(acc.format(accounts, delimiter="\t", with_header=True))
 
     if not arguments.no_upload:
         contents = acc.format(accounts)
@@ -82,7 +83,7 @@ def verify(arguments, os_config):
     contents = swift_download(connection, arguments.container, object_name='merge/accounts.csv')
     accounts = acc.verify(contents, os_config)
     if arguments.verbose > 0:
-        print acc.format(accounts, all_fields=True, delimiter="\t", with_header=True)
+        print(acc.format(accounts, all_fields=True, delimiter="\t", with_header=True))
 
     if not arguments.no_upload:
         contents = acc.format(accounts, all_fields=True, with_header=True)
@@ -93,15 +94,15 @@ def verify(arguments, os_config):
             headers = {'X-Delete-After': (arguments.history * 24 * 60 * 60)}  # keep for x days
             swift_upload(connection, 'caretaker', obj_name, contents, headers=headers)
 
-        orphans = list(filter(lambda d: d['status'] in (acc.STATUS_ORPHAN, acc.STATUS_INVALID), accounts))
+        orphans = list([d for d in accounts if d['status'] in (acc.STATUS_ORPHAN, acc.STATUS_INVALID)])
         contents = acc.format(orphans, all_fields=True, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts_orphan.csv', contents)
 
-        unknown = list(filter(lambda d: d['status'] == acc.STATUS_UNKNOWN, accounts))
+        unknown = list([d for d in accounts if d['status'] == acc.STATUS_UNKNOWN])
         contents = acc.format(unknown, all_fields=True, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts_unknown.csv', contents)
 
-        valid = list(filter(lambda d: d['status'] == acc.STATUS_VALID, accounts))
+        valid = list([d for d in accounts if d['status'] == acc.STATUS_VALID])
         contents = acc.format(valid, all_fields=True, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts_valid.csv', contents)
 
