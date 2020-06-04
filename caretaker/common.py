@@ -62,7 +62,7 @@ def swift_upload(connection, container, object_name, contents, content_type='tex
 def swift_download(connection, container, object_name):
     content = connection.get_object(container, object_name)[1]
     LOG.info("{0}/{1}/{2} successfully downloaded".format(connection.url, container, object_name))
-    return content
+    return content.decode("utf-8")
 
 
 def swift_download_all(connection, container, prefix):
@@ -70,7 +70,7 @@ def swift_download_all(connection, container, prefix):
     i = 0
     for object_data in connection.get_container(container, prefix=prefix)[1]:
         body = connection.get_object(container, object_data['name'])[1]
-        contents += body
+        contents += body.decode("utf-8")
         i += 1
 
     LOG.info("{0} objects from {1}/{2}/{3} successfully downloaded".format(i, connection.url, container, prefix))
