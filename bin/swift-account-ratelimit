@@ -27,7 +27,7 @@ def check_header(clnt, account, details=False):
     meta = clnt.get_account_metadata(account)
 
     if details:
-        for key, value in meta.items():
+        for key, value in list(meta.items()):
             print("\t%s: %s" % (key, value))
         print("")
 

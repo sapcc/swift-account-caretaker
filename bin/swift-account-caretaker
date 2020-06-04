@@ -32,7 +32,7 @@ def _build_os_config(arguments):
     if arguments.config_file:
         with open(arguments.config_file, 'r') as stream:
             try:
-                conf = yaml.load(stream)
+                conf = yaml.load(stream=stream, Loader=yaml.FullLoader)
                 if 'common' in conf:
                     os_config['common'] = conf['common']
                     if 'os_auth_version' not in os_config['common']:
