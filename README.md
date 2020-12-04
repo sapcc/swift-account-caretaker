@@ -118,3 +118,11 @@ verify:
     os_project_domain_name: <PROJECTDOMAIN_FOR_KEYSTONE_ADMIN>
     os_project_name: <PROJECT_FOR_KEYSTONE_ADMIN>
 ```
+
+Instead of providing `os_password` as plain text in the config file, you can
+use a special syntax to read the respective password from an exported
+environment variable:
+
+```yaml
+os_password: { fromEnv: ENVIRONMENT_VARIABLE }
+```

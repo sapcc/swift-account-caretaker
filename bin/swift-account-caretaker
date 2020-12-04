@@ -26,23 +26,58 @@ from os import environ
 from caretaker.common import *
 
 
+def _get_password(given):
+    """
+    _get_password takes either a plain text password or a key for the
+    environment variable that has the password as its value.
+    The key has the format: `{ fromEnv: ENVIRONMENT_VARIABLE }`.
+    If a key is given then the password is retrieved from that env variable.
+    """
+
+    t = type(given)
+    if (t == str) or (t == dict):
+        if t == str:
+            return given
+    else:
+        sys.exit("invalid value for os_password: {}".format(given))
+
+    # Get password from environment variable
+    dict_key = "fromEnv"
+    if not dict_key in given:
+        sys.exit("invalid value, expected environment variable key in 'os_password.fromEnv', got: {}".format(given))
+
+    key = given[dict_key]
+    val = environ.get(key)
+    if not val:
+        sys.exit("environment variable '{}' is either undefined or empty".format(key))
+
+    return val
+
 def _build_os_config(arguments):
     os_config = {'common': {}, 'verify': [], 'scrape': []}
+    pass_key = 'os_password'
 
     if arguments.config_file:
         with open(arguments.config_file, 'r') as stream:
             try:
                 conf = yaml.load(stream=stream, Loader=yaml.FullLoader)
                 if 'common' in conf:
-                    os_config['common'] = conf['common']
+                    common = conf['common']
+                    os_config['common'] = common
+                    if pass_key in common:
+                        os_config['common'][pass_key] = _get_password(common[pass_key])
                     if 'os_auth_version' not in os_config['common']:
                         os_config['common']['os_auth_version'] = '3'
                 else:
                     sys.exit("common missing in {0}".format(arguments.config_file))
+
                 if 'verify' in conf:
                     for verify in conf['verify']:
+                        if pass_key in verify:
+                            verify[pass_key] = _get_password(verify[pass_key])
                         if 'os_auth_version' not in verify:
                             verify['os_auth_version'] = '3'
+
                         if 'scrape' in verify and verify['scrape']:
                             os_config['scrape'].append(verify)
                         else:
