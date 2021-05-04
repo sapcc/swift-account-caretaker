@@ -171,7 +171,7 @@ if __name__ == "__main__":
     parser.add_argument('--statsd-port', type=int,
                         default=8125, help='Statsd Portnumber')
     parser.add_argument('--statsd-prefix',
-                        default='swift_caretaker', help='Statsd Prefix')
+                        default='caretaker', help='Statsd Prefix')
 
     parser_collect = subparsers.add_parser('collect', help='collect account info')
     parser_collect.set_defaults(func=collect)

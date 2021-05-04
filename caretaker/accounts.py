@@ -181,9 +181,9 @@ def verify(contents, os_config, statsd):
                                                                                              len(accounts)))
 
     if statsd is not None:
-        statsd.gauge('accounts_valid', valid)
-        statsd.gauge('accounts_orphan', orphan)
-        statsd.gauge('accounts_deleted', deleted)
+        statsd.gauge('accounts.valid', valid)
+        statsd.gauge('accounts.orphan', orphan)
+        statsd.gauge('accounts.deleted', deleted)
 
     return accounts
 
