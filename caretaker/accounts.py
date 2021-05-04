@@ -125,7 +125,7 @@ def merge(contents):
     return sorted(list(accounts.values()), key=itemgetter('domain_id', 'project_id'))
 
 
-def verify(contents, os_config):
+def verify(contents, os_config, statsd):
     accounts = []
     for line in contents.split("\n"):
         if line:
@@ -179,6 +179,12 @@ def verify(contents, os_config):
 
     LOG.info("Account verification: Valid {0}, Orphans {1}, Deleted {2}, Overall {3}".format(valid, orphan, deleted,
                                                                                              len(accounts)))
+
+    if statsd is not None:
+        statsd.gauge('accounts_valid', valid)
+        statsd.gauge('accounts_orphan', orphan)
+        statsd.gauge('accounts_deleted', deleted)
+
     return accounts
 
 

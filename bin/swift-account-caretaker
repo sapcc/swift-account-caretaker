@@ -22,6 +22,7 @@ import socket
 import sys
 import yaml
 from os import environ
+from statsd import StatsClient
 
 from caretaker.common import *
 
@@ -116,7 +117,13 @@ def merge(arguments, os_config):
 def verify(arguments, os_config):
     connection = swift_connection(os_config['common'])
     contents = swift_download(connection, arguments.container, object_name='merge/accounts.csv')
-    accounts = acc.verify(contents, os_config)
+
+    statsd = None
+    if not arguments.disable_statsd:
+        # initialize statsd client
+        statsd = StatsClient(arguments.statsd_host, arguments.statsd_port, arguments.statsd_prefix)
+
+    accounts = acc.verify(contents, os_config, statsd)
     if arguments.verbose > 0:
         print(acc.format(accounts, all_fields=True, delimiter="\t", with_header=True))
 
@@ -159,6 +166,13 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--log-level',
                         default=environ.get('LOG_LEVEL', 'warn'),
                         help='Loglevel')
+    parser.add_argument('--statsd-host',
+                        default='localhost', help='Statsd Hostname')
+    parser.add_argument('--statsd-port', type=int,
+                        default=8125, help='Statsd Portnumber')
+    parser.add_argument('--statsd-prefix',
+                        default='swift_caretaker', help='Statsd Prefix')
+
     parser_collect = subparsers.add_parser('collect', help='collect account info')
     parser_collect.set_defaults(func=collect)
     parser_collect.add_argument('--device-dir',
@@ -185,6 +199,8 @@ if __name__ == "__main__":
                                     'Defaults to caretaker.')
     parser_verify.add_argument('--history', default=0, type=int,
                                help='Keep a copy of the accounts file for n days.')
+    parser_verify.add_argument('--disable-statsd', action="store_true",
+                               help='Do not sent statsd metrics')
 
     parser_mergify = subparsers.add_parser('mergify', help='Merge and verify account info')
     parser_mergify.set_defaults(func=mergify)
@@ -194,6 +210,8 @@ if __name__ == "__main__":
                                      'Defaults to caretaker.')
     parser_mergify.add_argument('--history', default=0, type=int,
                                 help='Keep a copy of the accounts file for n days.')
+    parser_mergify.add_argument('--disable-statsd', action="store_true",
+                                help='Do not sent statsd metrics')
 
     _args = parser.parse_args(sys.argv[1:])
     logging.basicConfig(level=_args.log_level.upper())
