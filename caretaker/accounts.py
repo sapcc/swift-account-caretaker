@@ -169,14 +169,14 @@ def verify(contents, os_config, statsd):
                 valid += 1
                 LOG.debug("Account {0} is VALID in {1}/{2}".format(account['account'], domain.name, project.name))
             else:
-                account['status'] = STATUS_VALID
+                account['status'] = STATUS_INVALID
                 LOG.warning("Account {0} is INVALID in {1}/{2}".format(account['account'], domain.name, project.name))
         else:
             if not account['status_deleted'] == 'True':
                 account['status'] = STATUS_ORPHAN
-                orphan += 1
                 LOG.warning("Account {0} is ORPHAN in {1}".format(account['account'], domain.name))
 
+    orphan = len(accounts) - valid - deleted
     LOG.info("Account verification: Valid {0}, Orphans {1}, Deleted {2}, Overall {3}".format(valid, orphan, deleted,
                                                                                              len(accounts)))
 

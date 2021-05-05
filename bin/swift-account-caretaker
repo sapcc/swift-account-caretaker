@@ -136,13 +136,9 @@ def verify(arguments, os_config):
             headers = {'X-Delete-After': (arguments.history * 24 * 60 * 60)}  # keep for x days
             swift_upload(connection, 'caretaker', obj_name, contents, headers=headers)
 
-        orphans = list([d for d in accounts if d['status'] in (acc.STATUS_ORPHAN, acc.STATUS_INVALID)])
+        orphans = list([d for d in accounts if d['status'] != acc.STATUS_VALID])
         contents = acc.format(orphans, all_fields=True, with_header=True)
         swift_upload(connection, 'caretaker', 'accounts_orphan.csv', contents)
-
-        unknown = list([d for d in accounts if d['status'] == acc.STATUS_UNKNOWN])
-        contents = acc.format(unknown, all_fields=True, with_header=True)
-        swift_upload(connection, 'caretaker', 'accounts_unknown.csv', contents)
 
         valid = list([d for d in accounts if d['status'] == acc.STATUS_VALID])
         contents = acc.format(valid, all_fields=True, with_header=True)
