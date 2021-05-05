@@ -3,3 +3,4 @@ python-keystoneclient
 python-swiftclient
 pyYaml
 future
+statsd
