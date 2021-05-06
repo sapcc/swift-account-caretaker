@@ -119,6 +119,12 @@ def merge(contents):
                 continue
 
             # Only collect the IDs to skip duplicates
+            # but prefere best data and don't overwrite with UNKNOWN
+            if (account['domain_id'] == STATUS_UNKNOWN and
+                    account['account'] in accounts and
+                    accounts[account['account']]['domain_id'] != STATUS_UNKNOWN):
+                continue
+
             accounts[account['account']] = account
 
     LOG.info("{0} accounts merged into {1} unique".format(i, len(accounts)))
