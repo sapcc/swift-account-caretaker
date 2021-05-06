@@ -98,8 +98,11 @@ def collect(arguments, os_config):
 
     if not arguments.no_upload:
         obj_name = 'collect/' + socket.getfqdn() + '_accounts.csv'
+        # Don't keep retired storage node files
+        headers = {'X-Delete-After': (2 * 24 * 60 * 60)}  # keep for 2 days
         contents = acc.format(accounts)
-        swift_upload(swift_connection(os_config['common']), arguments.container, obj_name, contents)
+        swift_upload(swift_connection(os_config['common']), arguments.container, obj_name,
+                                        contents, headers=headers)
 
 
 def merge(arguments, os_config):
