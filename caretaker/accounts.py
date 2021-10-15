@@ -114,8 +114,9 @@ def merge(contents):
             i += 1
             account = _construct(line)
 
-            # This account is used by the object expirer
-            if account['account'] == '.expiring_objects':
+            # Ignore swift internal accounts for object expiry and sharding
+            if (account['account'] == '.expiring_objects' or
+                    account['account'].startswith('.shards_')):
                 continue
 
             # Only collect the IDs to skip duplicates
