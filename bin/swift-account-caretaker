@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
 import argparse
 import caretaker.accounts as acc
 import datetime
@@ -40,17 +39,17 @@ def _get_password(given):
         if t == str:
             return given
     else:
-        sys.exit("invalid value for os_password: {}".format(given))
+        sys.exit(f"invalid value for os_password: {given}")
 
     # Get password from environment variable
     dict_key = "fromEnv"
     if not dict_key in given:
-        sys.exit("invalid value, expected environment variable key in 'os_password.fromEnv', got: {}".format(given))
+        sys.exit(f"invalid value, expected environment variable key in 'os_password.fromEnv', got: {given}")
 
     key = given[dict_key]
     val = environ.get(key)
     if not val:
-        sys.exit("environment variable '{}' is either undefined or empty".format(key))
+        sys.exit(f"environment variable '{key}' is either undefined or empty")
 
     return val
 
@@ -59,7 +58,7 @@ def _build_os_config(arguments):
     pass_key = 'os_password'
 
     if arguments.config_file:
-        with open(arguments.config_file, 'r') as stream:
+        with open(arguments.config_file) as stream:
             try:
                 conf = yaml.load(stream=stream, Loader=yaml.FullLoader)
                 if 'common' in conf:
@@ -70,7 +69,7 @@ def _build_os_config(arguments):
                     if 'os_auth_version' not in os_config['common']:
                         os_config['common']['os_auth_version'] = '3'
                 else:
-                    sys.exit("common missing in {0}".format(arguments.config_file))
+                    sys.exit(f"common missing in {arguments.config_file}")
 
                 if 'verify' in conf:
                     for verify in conf['verify']:

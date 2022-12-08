@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
 import argparse
 from swift.common.internal_client import InternalClient
 import sys
@@ -23,18 +22,18 @@ RATELIMIT_HEADER = "X-Account-Sysmeta-Global-Write-Ratelimit"
 
 
 def check_header(clnt, account, details=False):
-    print("Reading meta data for Account %s" % account)
+    print(f"Reading meta data for Account {account}")
     meta = clnt.get_account_metadata(account)
 
     if details:
         for key, value in list(meta.items()):
-            print("\t%s: %s" % (key, value))
+            print(f"\t{key}: {value}")
         print("")
 
     if RATELIMIT_HEADER.lower() in meta:
-        print("%s: %s" % (RATELIMIT_HEADER, meta[RATELIMIT_HEADER.lower()]))
+        print(f"{RATELIMIT_HEADER}: {meta[RATELIMIT_HEADER.lower()]}")
     else:
-        print("%s not set" % RATELIMIT_HEADER)
+        print(f"{RATELIMIT_HEADER} not set")
 
 
 if __name__ == "__main__":
@@ -64,7 +63,7 @@ if __name__ == "__main__":
         elif args.limit:
             ratelimit = args.limit
 
-        print("Setting header to '%s'" % ratelimit)
+        print(f"Setting header to '{ratelimit}'")
         client.set_account_metadata(args.account, {RATELIMIT_HEADER: ratelimit})
 
         check_header(client, args.account)

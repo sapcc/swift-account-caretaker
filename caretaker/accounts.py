@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from builtins import str
-from builtins import object
 import fnmatch
 import glob
 import logging
@@ -207,7 +205,7 @@ def _construct(content):
     return account
 
 
-class _DomainHelper(object):
+class _DomainHelper:
     os_config = None
     domains = {}
 
@@ -251,7 +249,7 @@ class _DomainHelper(object):
 
                     LOG.info("{0}: {1} domains scraped".format(scraper['cluster_name'], count))
                 except (ke.BadRequest, ke.Unauthorized, ke.Forbidden, ke.NotFound) as err:
-                    LOG.warn("{0}: scraping failed: {1}".format(scraper['cluster_name'], err.message))
+                    LOG.warn("{}: scraping failed: {}".format(scraper['cluster_name'], err.message))
 
     def get_domain(self, domain_id):
         if domain_id in self.domains:
@@ -283,7 +281,7 @@ class _DomainHelper(object):
                     self.domains[dom.id] = dom
                     return dom
                 except (ke.BadRequest, ke.Unauthorized, ke.Forbidden, ke.NotFound) as err:
-                    LOG.warn("{0}: {1} domain not in cluster: {2}".format(verifier['cluster_name'], domain_id,
+                    LOG.warn("{}: {} domain not in cluster: {}".format(verifier['cluster_name'], domain_id,
                                                                           err.message))
 
     def get_default_domain(self, project_id):
