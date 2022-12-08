@@ -249,7 +249,7 @@ class _DomainHelper:
 
                     LOG.info("{0}: {1} domains scraped".format(scraper['cluster_name'], count))
                 except (ke.BadRequest, ke.Unauthorized, ke.Forbidden, ke.NotFound) as err:
-                    LOG.warn("{}: scraping failed: {}".format(scraper['cluster_name'], err.message))
+                    LOG.warning("{}: scraping failed: {}".format(scraper['cluster_name'], err.message))
 
     def get_domain(self, domain_id):
         if domain_id in self.domains:
@@ -281,7 +281,7 @@ class _DomainHelper:
                 self.domains[dom.id] = dom
                 return dom
             except (ke.BadRequest, ke.Unauthorized, ke.Forbidden, ke.NotFound) as err:
-                LOG.warn("{}: {} domain not in cluster: {}".format(verifier['cluster_name'], domain_id,
+                LOG.warning("{}: {} domain not in cluster: {}".format(verifier['cluster_name'], domain_id,
                                                                         err.message))
 
     def get_default_domain(self, project_id):
