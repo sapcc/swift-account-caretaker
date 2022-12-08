@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from future import standard_library
-standard_library.install_aliases()
 import logging
 import random
 
@@ -121,7 +119,8 @@ class DomainWrapper:
     def get_project(self, project_id):
         if project_id in self.projects:
             return self.projects[project_id]
-        elif self.keystone_client:
+
+        if self.keystone_client:
             try:
                 project = self.keystone_client.projects.get(project_id)
                 prj = ProjectWrapper(project.id)
