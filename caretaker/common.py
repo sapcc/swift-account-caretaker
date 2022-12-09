@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
-from builtins import object
 import logging
 import random
 
@@ -105,7 +101,7 @@ def keystone_get_backend_info(kclnt):
         return '_unknown'
 
 
-class DomainWrapper(object):
+class DomainWrapper:
     def __init__(self, domain_id):
         if domain_id == 'default':
             # Don't rely on default domain ID from scraper, that can be in every keystone backend present
@@ -123,7 +119,8 @@ class DomainWrapper(object):
     def get_project(self, project_id):
         if project_id in self.projects:
             return self.projects[project_id]
-        elif self.keystone_client:
+
+        if self.keystone_client:
             try:
                 project = self.keystone_client.projects.get(project_id)
                 prj = ProjectWrapper(project.id)
@@ -137,7 +134,7 @@ class DomainWrapper(object):
                 LOG.warning("DomainID {0}/ProjectID {1}: {2}".format(self.id, project_id, err.message))
 
 
-class ProjectWrapper(object):
+class ProjectWrapper:
     def __init__(self, project_id):
         self.id = project_id
         self.name = None

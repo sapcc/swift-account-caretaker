@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from builtins import str
-from builtins import object
 import fnmatch
 import glob
 import logging
@@ -207,7 +205,7 @@ def _construct(content):
     return account
 
 
-class _DomainHelper(object):
+class _DomainHelper:
     os_config = None
     domains = {}
 
@@ -251,40 +249,40 @@ class _DomainHelper(object):
 
                     LOG.info("{0}: {1} domains scraped".format(scraper['cluster_name'], count))
                 except (ke.BadRequest, ke.Unauthorized, ke.Forbidden, ke.NotFound) as err:
-                    LOG.warn("{0}: scraping failed: {1}".format(scraper['cluster_name'], err.message))
+                    LOG.warning("{}: scraping failed: {}".format(scraper['cluster_name'], err.message))
 
     def get_domain(self, domain_id):
         if domain_id in self.domains:
             return self.domains[domain_id]
-        else:
-            for verifier in self.os_config['verify']:
-                # Getting a domain scoped session
-                sess = keystone_session(
-                    auth_url=verifier.get('os_auth_url'),
-                    admin_username=verifier.get('os_username'),
-                    admin_user_id=verifier.get('os_user_id'),
-                    admin_password=verifier.get('os_password'),
-                    admin_user_domain_name=verifier.get('os_user_domain_name'),
-                    admin_user_domain_id=verifier.get('os_user_domain_id'),
-                    insecure=verifier.get('insecure'),
-                    domain_id=domain_id)
-                kclnt = keystone_client(session=sess, interface=verifier.get('os_interface'))
 
-                try:
-                    domain = kclnt.domains.get(domain_id)
-                    backend = keystone_get_backend_info(kclnt)
+        for verifier in self.os_config['verify']:
+            # Getting a domain scoped session
+            sess = keystone_session(
+                auth_url=verifier.get('os_auth_url'),
+                admin_username=verifier.get('os_username'),
+                admin_user_id=verifier.get('os_user_id'),
+                admin_password=verifier.get('os_password'),
+                admin_user_domain_name=verifier.get('os_user_domain_name'),
+                admin_user_domain_id=verifier.get('os_user_domain_id'),
+                insecure=verifier.get('insecure'),
+                domain_id=domain_id)
+            kclnt = keystone_client(session=sess, interface=verifier.get('os_interface'))
 
-                    dom = DomainWrapper(domain.id)
-                    dom.name = domain.name
-                    dom.enabled = domain.enabled
-                    dom.backend = backend
-                    dom.keystone_client = kclnt
+            try:
+                domain = kclnt.domains.get(domain_id)
+                backend = keystone_get_backend_info(kclnt)
 
-                    self.domains[dom.id] = dom
-                    return dom
-                except (ke.BadRequest, ke.Unauthorized, ke.Forbidden, ke.NotFound) as err:
-                    LOG.warn("{0}: {1} domain not in cluster: {2}".format(verifier['cluster_name'], domain_id,
-                                                                          err.message))
+                dom = DomainWrapper(domain.id)
+                dom.name = domain.name
+                dom.enabled = domain.enabled
+                dom.backend = backend
+                dom.keystone_client = kclnt
+
+                self.domains[dom.id] = dom
+                return dom
+            except (ke.BadRequest, ke.Unauthorized, ke.Forbidden, ke.NotFound) as err:
+                LOG.warning("{}: {} domain not in cluster: {}".format(verifier['cluster_name'], domain_id,
+                                                                        err.message))
 
     def get_default_domain(self, project_id):
         for dom in [v for k, v in list(self.domains.items()) if k.startswith('default_')]:
